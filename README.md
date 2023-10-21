@@ -5,5 +5,5 @@ without sacrificing significant performance. The language is primarily functiona
 other paradigms where it can without compromising its core design principles.
 
 The language is "interpreted" in that it is meant to run on the Sahara Virtual Machine, but is
-also compiled to bytecode before execution. Sahara should eventually provide JIT compliation to
+also compiled to bytecode before execution. Sahara should eventually provide JIT compilation to
 native code in the future for increased performance.
