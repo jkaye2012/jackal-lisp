@@ -1,0 +1,26 @@
+name: jackal
+description: |
+  Development environment for the Jackal programming language.
+
+editor: VSCode
+platform: ubuntu:22.04
+
+tools:
+  - name: rust
+    version_req: 1.0.0
+  - name: git
+    version_req: 1.0.0
+  - name: mkdocs-material
+    version_req: 1.0.0
+
+installation:
+  packages:
+    - vim
+
+editor_config:
+  vscode:
+    extensions:
+      - github.copilot
+      - github.copilot-chat
+      - gruntfuggly.todo-tree
+      - redhat.vscode-yaml

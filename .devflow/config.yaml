@@ -1,0 +1,3 @@
+default_workbench: true
+workbenches:
+  local: "file://{{ project_root_directory }}/test/workbench"

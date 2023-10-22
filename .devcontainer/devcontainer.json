@@ -1,0 +1,25 @@
+{
+  "remoteUser": "jkaye",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/jkaye/.ssh,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "-h",
+    "devflow"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": [
+        "redhat.vscode-yaml",
+        "rust-lang.rust-analyzer",
+        "github.copilot",
+        "gruntfuggly.todo-tree",
+        "github.copilot-chat"
+      ]
+    }
+  }
+}
