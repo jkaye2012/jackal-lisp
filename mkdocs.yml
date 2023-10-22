@@ -3,7 +3,6 @@ site_name: The Jackal Programming Language
 theme:
   name: material
   features:
-    - navigation.path
     - navigation.top
     - search.highlight
     - search.suggest
