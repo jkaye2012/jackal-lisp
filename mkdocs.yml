@@ -24,6 +24,18 @@ theme:
         icon: material/weather-night
         name: Switch to light mode
 
+nav:
+  - index.md
+  - Jackal:
+      - jackal/index.md
+  - Sahara:
+      - sahara/index.md
+      - sahara/memory-execution-model.md
+      - sahara/execution-context.md
+      - sahara/bytecode.md
+      - sahara/debug.md
+      - sahara/metaprogramming.md
+
 extra:
   consent:
     title: Cookie consent

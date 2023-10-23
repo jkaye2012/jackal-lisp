@@ -18,7 +18,8 @@
         "rust-lang.rust-analyzer",
         "github.copilot",
         "gruntfuggly.todo-tree",
-        "github.copilot-chat"
+        "github.copilot-chat",
+        "darkriszty.markdown-table-prettify"
       ]
     }
   }
