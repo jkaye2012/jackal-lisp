@@ -18,6 +18,11 @@ The data stack contains values that need not persist beyond the scope of a singl
 move data between the heap and the data stack, allowing compilers to define the lifetime of data as it moves through the
 execution of a program.
 
+## Return stack
+
+The return stack contains the addresses of functions as they're invoked within the VM. This allows execution to easily
+continue at the appropriate point upon completion of function execution.
+
 ## Heap
 
 The heap stores data that must persist beyond the scope of a single stack frame. Unlike most other virtual machines, a
