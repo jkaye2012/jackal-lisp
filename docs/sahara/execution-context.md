@@ -18,10 +18,11 @@ The data stack contains values that need not persist beyond the scope of a singl
 move data between the heap and the data stack, allowing compilers to define the lifetime of data as it moves through the
 execution of a program.
 
-## Return stack
+## Call stack
 
-The return stack contains the addresses of functions as they're invoked within the VM. This allows execution to easily
-continue at the appropriate point upon completion of function execution.
+The call stack contains the return addresses of functions as they're invoked within the VM and provides storage for
+function-local variables. Values can be loaded to and from the data stack into the call stack using specialized
+instructions.
 
 ## Heap
 

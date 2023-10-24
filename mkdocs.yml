@@ -32,6 +32,7 @@ nav:
       - sahara/index.md
       - sahara/memory-execution-model.md
       - sahara/execution-context.md
+      - sahara/data-layout.md
       - sahara/bytecode.md
       - sahara/debug.md
       - sahara/metaprogramming.md

@@ -4,11 +4,13 @@ use crate::instruction::Instruction;
 use crate::util::stack::Stack;
 use crate::value::Value;
 
-struct Location(u64);
+struct InstructionAddress(usize);
 
 struct Program {
     instructions: Vec<Instruction>,
 }
+
+struct Callstack {}
 
 struct MetaInformation {}
 
@@ -21,7 +23,7 @@ struct Heap {
 pub struct ExecutionContext {
     program: Program,
     data: Stack<Value>,
-    callstack: Stack<Location>,
+    callstack: Callstack,
     meta: MetaInformation,
     heap: Heap,
     debug: Option<DebugInformation>,
