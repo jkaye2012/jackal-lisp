@@ -1,8 +1,20 @@
-#[derive(PartialEq, Eq)]
+use std::ops;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Value {
-    U8(u8),
     U64(u64),
-    I8(i8),
-    I64(i64),
-    Bool(bool),
+}
+
+impl ops::Add<Value> for Value {
+    type Output = Value;
+
+    fn add(self, rhs: Value) -> Self::Output {
+        match self {
+            Self::U64(a) => match rhs {
+                Value::U64(b) => {
+                    return Value::U64(a + b);
+                }
+            },
+        }
+    }
 }

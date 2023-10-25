@@ -19,7 +19,8 @@
         "github.copilot",
         "gruntfuggly.todo-tree",
         "github.copilot-chat",
-        "darkriszty.markdown-table-prettify"
+        "darkriszty.markdown-table-prettify",
+        "streetsidesoftware.code-spell-checker"
       ]
     }
   }

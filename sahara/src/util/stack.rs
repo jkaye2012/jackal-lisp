@@ -1,3 +1,4 @@
+#[derive(Default)]
 pub struct Stack<T> {
     items: Vec<T>,
 }
@@ -11,12 +12,12 @@ impl<T> Stack<T> {
         self.items.push(item);
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        self.items.pop()
+    pub fn pop(&mut self) -> T {
+        self.items.pop().expect("Attempted to pop empty stack")
     }
 
-    pub fn peek(&self) -> Option<&T> {
-        self.items.last()
+    pub fn peek(&self) -> &T {
+        self.items.last().expect("Attempted to peek empty stack")
     }
 
     pub fn is_empty(&self) -> bool {
