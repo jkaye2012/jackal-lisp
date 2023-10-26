@@ -1,28 +1,10 @@
-use crate::value::Value;
+use crate::{util::index::InstructionIndex, value::Value};
 
-pub struct ConstantIndex(u8, u8, u8);
+pub struct ConstantIndex(InstructionIndex);
 
-impl From<usize> for ConstantIndex {
-    fn from(value: usize) -> Self {
-        let a = ((value >> 16) & 0xFF) as u8;
-        let b = ((value >> 8) & 0xFF) as u8;
-        let c = (value & 0xFF) as u8;
-        ConstantIndex(a, b, c)
-    }
-}
-
-impl From<ConstantIndex> for usize {
+impl From<ConstantIndex> for InstructionIndex {
     fn from(value: ConstantIndex) -> Self {
-        ((value.0 as usize) << 16) | ((value.1 as usize) << 8) | (value.2 as usize)
-    }
-}
-
-impl ConstantIndex {
-    pub fn new(a: u8, b: u8, c: u8) -> Self {
-        ConstantIndex(a, b, c) // TODO: just treat the instruction as a 24-bit chunk
-    }
-    pub fn to_immediate(&self) -> (u8, u8, u8) {
-        (self.0, self.1, self.2)
+        value.0
     }
 }
 
@@ -34,15 +16,15 @@ pub struct ConstantPool {
 impl ConstantPool {
     fn find_or_insert(&mut self, value: Value) -> ConstantIndex {
         if let Some(idx) = self.constants.iter().position(|v| v == &value) {
-            idx.into()
+            ConstantIndex(idx.into())
         } else {
             let idx = self.constants.len();
             self.constants.push(value);
-            idx.into()
+            ConstantIndex(idx.into())
         }
     }
 
-    pub fn get(&self, index: ConstantIndex) -> Value {
+    pub fn get(&self, index: InstructionIndex) -> Value {
         let i: usize = index.into();
         self.constants[i]
     }

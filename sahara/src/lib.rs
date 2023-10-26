@@ -1,5 +1,6 @@
 mod constant_pool;
 mod execution_context;
+mod function;
 mod instruction;
 mod program;
 mod util;

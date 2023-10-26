@@ -45,7 +45,7 @@ development.
       to poor metaprogramming support in most languages. Jackal's implementation as a lisp allows it to include a fully
       hygienic macro system that integrates directly with the runtime features of the language. Proper use of
       metaprogramming techniques greatly reduces the total amount of code required to solve most problems, and less code
-      will mean less defects and less maintainence for most programs.
+      will mean less defects and less maintenance for most programs.
 
 6. **Performance cannot be an afterthought**
     * Good performance is a necessity for functional software. While the primary goal o Jackal is to improve developer

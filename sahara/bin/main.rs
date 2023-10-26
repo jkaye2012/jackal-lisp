@@ -5,8 +5,8 @@ fn main() {
     let mut instructions = Vec::new();
     {
         let pool = context.constant_pool();
-        instructions.push(Instruction::const_u64(pool, 2));
-        instructions.push(Instruction::const_u64(pool, 2));
+        instructions.push(Instruction::const_u64(pool.add_u64(2)));
+        instructions.push(Instruction::const_u64(pool.add_u64(2)));
         instructions.push(Instruction::add());
         instructions.push(Instruction::print());
         instructions.push(Instruction::halt());

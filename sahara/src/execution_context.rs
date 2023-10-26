@@ -1,6 +1,7 @@
 use generational_arena::Arena;
 
 use crate::constant_pool::ConstantPool;
+use crate::function::{Function, FunctionIndex};
 use crate::instruction::Opcode;
 use crate::program::{InstructionAddress, Program};
 use crate::util::stack::Stack;
@@ -9,11 +10,24 @@ use crate::value::Value;
 #[derive(Debug, Default, Clone, Copy)]
 struct LocalAddress(usize);
 
-#[derive(Default)]
+struct Frame {
+    ip: InstructionAddress,
+    locals: LocalAddress,
+    function: FunctionIndex,
+}
+
 struct Callstack {
-    return_addresses: Stack<InstructionAddress>,
-    local_boundaries: Stack<LocalAddress>,
+    frames: Stack<Frame>,
     locals: Vec<Value>,
+}
+
+impl Callstack {
+    pub fn new() -> Self {
+        Callstack {
+            frames: Stack::new(),
+            locals: Vec::new(),
+        }
+    }
 }
 
 struct MetaInformation {}
@@ -38,7 +52,7 @@ impl ExecutionContext {
             program,
             constants: Default::default(),
             data: Stack::new(),
-            callstack: Default::default(),
+            callstack: Callstack::new(),
             meta: MetaInformation {},
             heap: Heap {},
             debug: None,
