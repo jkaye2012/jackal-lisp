@@ -1,7 +1,7 @@
-use sahara::{ExecutionContext, Instruction, Program, VirtualMachine};
+use sahara::{ExecutionContext, Function, Instruction, VirtualMachine};
 
 fn main() {
-    let mut context = ExecutionContext::new(Program::new());
+    let mut context = ExecutionContext::new(Function::new());
     let mut instructions = Vec::new();
     {
         let pool = context.constant_pool();
@@ -12,7 +12,7 @@ fn main() {
         instructions.push(Instruction::halt());
     }
     {
-        let program = context.program();
+        let program = context.entrypoint();
         for inst in instructions.into_iter() {
             program.add(inst);
         }

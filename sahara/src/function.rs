@@ -2,8 +2,39 @@ use std::{borrow::Borrow, collections::HashMap};
 
 use crate::{util::index::InstructionIndex, Instruction};
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct InstructionPointer(usize);
+
+impl InstructionPointer {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn increment(&mut self) -> usize {
+        let current = self.0;
+        self.0 += 1;
+        current
+    }
+}
+
 pub struct Function {
     instructions: Vec<Instruction>,
+}
+
+impl Function {
+    pub fn new() -> Self {
+        Function {
+            instructions: Vec::new(),
+        }
+    }
+
+    pub fn add(&mut self, inst: Instruction) {
+        self.instructions.push(inst);
+    }
+
+    pub fn next_instruction(&self, ip: &mut InstructionPointer) -> Instruction {
+        self.instructions[ip.increment()]
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

@@ -1,9 +1,8 @@
 use generational_arena::Arena;
 
 use crate::constant_pool::ConstantPool;
-use crate::function::{Function, FunctionIndex};
+use crate::function::{Function, FunctionIndex, InstructionPointer};
 use crate::instruction::Opcode;
-use crate::program::{InstructionAddress, Program};
 use crate::util::stack::Stack;
 use crate::value::Value;
 
@@ -11,7 +10,7 @@ use crate::value::Value;
 struct LocalAddress(usize);
 
 struct Frame {
-    ip: InstructionAddress,
+    ip: InstructionPointer,
     locals: LocalAddress,
     function: FunctionIndex,
 }
@@ -37,7 +36,7 @@ struct DebugInformation {}
 struct Heap {}
 
 pub struct ExecutionContext {
-    program: Program,
+    entrypoint: Function,
     constants: ConstantPool,
     data: Stack<Value>,
     callstack: Callstack,
@@ -47,9 +46,9 @@ pub struct ExecutionContext {
 }
 
 impl ExecutionContext {
-    pub fn new(program: Program) -> Self {
+    pub fn new(entrypoint: Function) -> Self {
         Self {
-            program,
+            entrypoint,
             constants: Default::default(),
             data: Stack::new(),
             callstack: Callstack::new(),
@@ -59,8 +58,8 @@ impl ExecutionContext {
         }
     }
 
-    pub fn program(&mut self) -> &mut Program {
-        &mut self.program
+    pub fn entrypoint(&mut self) -> &mut Function {
+        &mut self.entrypoint
     }
 
     pub fn constant_pool(&mut self) -> &mut ConstantPool {
@@ -68,8 +67,9 @@ impl ExecutionContext {
     }
 
     pub fn run(&mut self) {
+        let mut ip = InstructionPointer::new();
         while {
-            let (addr, inst) = self.program.step();
+            let inst = self.entrypoint.next_instruction(&mut ip);
             match inst.op() {
                 Opcode::ConstU64 => {
                     let value = self.constant_pool().get(inst.into());
