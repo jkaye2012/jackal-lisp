@@ -28,6 +28,10 @@ impl Function {
         }
     }
 
+    pub fn from_instructions(instructions: Vec<Instruction>) -> Self {
+        Function { instructions }
+    }
+
     pub fn add(&mut self, inst: Instruction) {
         self.instructions.push(inst);
     }
@@ -37,14 +41,24 @@ impl Function {
     }
 }
 
+impl Default for Function {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Hash)]
-struct FunctionId {
+pub struct FunctionId {
     fq_name: String,
 }
 
 impl FunctionId {
     pub fn new(module_name: &str, function_name: &str) -> Self {
         let fq_name = format!("{}::{}", module_name, function_name);
+        FunctionId { fq_name }
+    }
+
+    pub fn from_fq_name(fq_name: String) -> Self {
         FunctionId { fq_name }
     }
 }
@@ -60,6 +74,7 @@ pub struct FunctionTable {
     indices: HashMap<FunctionId, usize>,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct FunctionIndex(InstructionIndex);
 
 impl From<FunctionIndex> for InstructionIndex {
@@ -69,6 +84,13 @@ impl From<FunctionIndex> for InstructionIndex {
 }
 
 impl FunctionTable {
+    pub fn new() -> Self {
+        FunctionTable {
+            functions: Vec::new(),
+            indices: HashMap::new(),
+        }
+    }
+
     pub fn insert(&mut self, id: FunctionId, func: Function) {
         let idx = self.functions.len();
         self.functions.push(func);
@@ -86,5 +108,11 @@ impl FunctionTable {
     pub fn get(&self, index: FunctionIndex) -> &Function {
         let idx: usize = index.0.into();
         &self.functions[idx]
+    }
+}
+
+impl Default for FunctionTable {
+    fn default() -> Self {
+        Self::new()
     }
 }

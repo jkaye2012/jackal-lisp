@@ -7,6 +7,6 @@ mod value;
 mod vm;
 
 pub use execution_context::ExecutionContext;
-pub use function::Function;
+pub use function::{Function, FunctionId, FunctionTable};
 pub use instruction::Instruction;
 pub use vm::VirtualMachine;

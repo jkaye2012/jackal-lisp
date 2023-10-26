@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct InstructionIndex(usize);
 
 impl From<usize> for InstructionIndex {

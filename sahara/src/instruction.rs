@@ -1,8 +1,4 @@
-use crate::{
-    constant_pool::{ConstantIndex, ConstantPool},
-    function::FunctionIndex,
-    util::index::InstructionIndex,
-};
+use crate::{constant_pool::ConstantIndex, function::FunctionIndex, util::index::InstructionIndex};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]

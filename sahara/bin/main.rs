@@ -1,7 +1,7 @@
-use sahara::{ExecutionContext, Function, Instruction, VirtualMachine};
+use sahara::{ExecutionContext, Function, FunctionId, FunctionTable, Instruction, VirtualMachine};
 
 fn main() {
-    let mut context = ExecutionContext::new(Function::new());
+    let mut context = ExecutionContext::new();
     let mut instructions = Vec::new();
     {
         let pool = context.constant_pool();
@@ -11,12 +11,9 @@ fn main() {
         instructions.push(Instruction::print());
         instructions.push(Instruction::halt());
     }
-    {
-        let program = context.entrypoint();
-        for inst in instructions.into_iter() {
-            program.add(inst);
-        }
-    }
-    let mut vm = VirtualMachine::new(context);
+    let entrypoint = Function::from_instructions(instructions);
+    let mut table = FunctionTable::new();
+    table.insert(FunctionId::from_fq_name("main".to_string()), entrypoint);
+    let mut vm = VirtualMachine::new(context, table);
     vm.run();
 }

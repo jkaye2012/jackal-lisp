@@ -1,7 +1,7 @@
 use generational_arena::Arena;
 
 use crate::constant_pool::ConstantPool;
-use crate::function::{Function, FunctionIndex, InstructionPointer};
+use crate::function::{Function, FunctionIndex, FunctionTable, InstructionPointer};
 use crate::instruction::Opcode;
 use crate::util::stack::Stack;
 use crate::value::Value;
@@ -13,6 +13,16 @@ struct Frame {
     ip: InstructionPointer,
     locals: LocalAddress,
     function: FunctionIndex,
+}
+
+impl Frame {
+    pub fn new(locals: LocalAddress, function: FunctionIndex) -> Self {
+        Frame {
+            ip: InstructionPointer::new(),
+            locals,
+            function,
+        }
+    }
 }
 
 struct Callstack {
@@ -27,6 +37,18 @@ impl Callstack {
             locals: Vec::new(),
         }
     }
+
+    pub fn push(&mut self, frame: Frame) {
+        self.frames.push(frame);
+    }
+
+    pub fn peek(&mut self) -> &mut Frame {
+        self.frames.peek_mut()
+    }
+
+    pub fn pop(&mut self) {
+        self.frames.pop();
+    }
 }
 
 struct MetaInformation {}
@@ -36,7 +58,6 @@ struct DebugInformation {}
 struct Heap {}
 
 pub struct ExecutionContext {
-    entrypoint: Function,
     constants: ConstantPool,
     data: Stack<Value>,
     callstack: Callstack,
@@ -46,9 +67,8 @@ pub struct ExecutionContext {
 }
 
 impl ExecutionContext {
-    pub fn new(entrypoint: Function) -> Self {
+    pub fn new() -> Self {
         Self {
-            entrypoint,
             constants: Default::default(),
             data: Stack::new(),
             callstack: Callstack::new(),
@@ -58,18 +78,21 @@ impl ExecutionContext {
         }
     }
 
-    pub fn entrypoint(&mut self) -> &mut Function {
-        &mut self.entrypoint
-    }
-
     pub fn constant_pool(&mut self) -> &mut ConstantPool {
         &mut self.constants
     }
 
-    pub fn run(&mut self) {
-        let mut ip = InstructionPointer::new();
+    pub fn run(&mut self, function_table: &FunctionTable, entrypoint: &str) {
+        self.callstack.push(Frame::new(
+            LocalAddress(0),
+            function_table.address_of(entrypoint),
+        ));
         while {
-            let inst = self.entrypoint.next_instruction(&mut ip);
+            // TODO: need a more efficient way to keep track of the functions, can they
+            // somehow be embedded directly within the frames?
+            let frame = self.callstack.peek();
+            let func = function_table.get(frame.function);
+            let inst = func.next_instruction(&mut frame.ip);
             match inst.op() {
                 Opcode::ConstU64 => {
                     let value = self.constant_pool().get(inst.into());
