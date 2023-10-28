@@ -109,6 +109,21 @@ impl ExecutionContext {
                     let b = self.data.pop();
                     self.data.push(a + b);
                 }
+                Opcode::Sub => {
+                    let a = self.data.pop();
+                    let b = self.data.pop();
+                    self.data.push(a - b);
+                }
+                Opcode::Mul => {
+                    let a = self.data.pop();
+                    let b = self.data.pop();
+                    self.data.push(a * b);
+                }
+                Opcode::Div => {
+                    let a = self.data.pop();
+                    let b = self.data.pop();
+                    self.data.push(a / b);
+                }
                 Opcode::Call => {
                     let idx = inst.function_index();
                     func = function_table.get(idx);

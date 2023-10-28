@@ -8,6 +8,9 @@ use crate::{
 pub enum Opcode {
     Halt,
     Add,
+    Sub,
+    Mul,
+    Div,
     Print,
     Call,
     Return,
@@ -33,11 +36,14 @@ impl From<u8> for Opcode {
         match value {
             0 => Self::Halt,
             1 => Self::Add,
-            2 => Self::Print,
-            3 => Self::Call,
-            4 => Self::Return,
-            5 => Self::LocalStore,
-            6 => Self::LocalRead,
+            2 => Self::Sub,
+            3 => Self::Mul,
+            4 => Self::Div,
+            5 => Self::Print,
+            6 => Self::Call,
+            7 => Self::Return,
+            8 => Self::LocalStore,
+            9 => Self::LocalRead,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
             250 => Self::ImmU16,
@@ -163,6 +169,18 @@ impl Instruction {
 
     pub fn add() -> Instruction {
         Self::nullary(Opcode::Add)
+    }
+
+    pub fn sub() -> Instruction {
+        Self::nullary(Opcode::Sub)
+    }
+
+    pub fn mul() -> Instruction {
+        Self::nullary(Opcode::Mul)
+    }
+
+    pub fn div() -> Instruction {
+        Self::nullary(Opcode::Div)
     }
 
     pub fn print() -> Instruction {

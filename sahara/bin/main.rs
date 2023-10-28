@@ -28,6 +28,8 @@ fn main() {
         Instruction::constant(pool.add_u64(2)),
         Instruction::constant(pool.add_u64(2)),
         Instruction::add(),
+        Instruction::constant(pool.add_u64(3)),
+        Instruction::mul(),
         Instruction::print(),
         Instruction::call(func_idx),
         Instruction::halt(),
