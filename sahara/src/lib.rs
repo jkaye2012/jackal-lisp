@@ -6,6 +6,7 @@ mod util;
 mod value;
 mod vm;
 
+pub use constant_pool::ConstantPool;
 pub use execution_context::ExecutionContext;
 pub use function::{Function, FunctionId, FunctionTable};
 pub use instruction::Instruction;

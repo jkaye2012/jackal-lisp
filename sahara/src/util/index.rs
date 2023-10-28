@@ -15,6 +15,6 @@ impl From<InstructionIndex> for usize {
 
 impl InstructionIndex {
     pub fn new(idx: usize) -> Self {
-        InstructionIndex(idx & 0x00FFFFFF)
+        InstructionIndex(idx & 0xFFFFFF)
     }
 }

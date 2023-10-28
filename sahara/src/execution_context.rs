@@ -1,5 +1,3 @@
-use generational_arena::Arena;
-
 use crate::constant_pool::ConstantPool;
 use crate::function::{Function, FunctionIndex, FunctionTable, InstructionPointer};
 use crate::instruction::Opcode;
@@ -58,7 +56,6 @@ struct DebugInformation {}
 struct Heap {}
 
 pub struct ExecutionContext {
-    constants: ConstantPool,
     data: Stack<Value>,
     callstack: Callstack,
     meta: MetaInformation,
@@ -69,7 +66,6 @@ pub struct ExecutionContext {
 impl ExecutionContext {
     pub fn new() -> Self {
         Self {
-            constants: Default::default(),
             data: Stack::new(),
             callstack: Callstack::new(),
             meta: MetaInformation {},
@@ -78,24 +74,25 @@ impl ExecutionContext {
         }
     }
 
-    pub fn constant_pool(&mut self) -> &mut ConstantPool {
-        &mut self.constants
-    }
-
-    pub fn run(&mut self, function_table: &FunctionTable, entrypoint: &str) {
+    // TODO: does this need to be moved into the VM somehow? How should execution contexts
+    // be interacted with?
+    pub fn run(
+        &mut self,
+        constants: &ConstantPool,
+        function_table: &FunctionTable,
+        entrypoint: &str,
+    ) {
         self.callstack.push(Frame::new(
             LocalAddress(0),
             function_table.address_of(entrypoint),
         ));
+        let mut frame = self.callstack.peek();
+        let mut func = function_table.get(frame.function);
         while {
-            // TODO: need a more efficient way to keep track of the functions, can they
-            // somehow be embedded directly within the frames?
-            let frame = self.callstack.peek();
-            let func = function_table.get(frame.function);
             let inst = func.next_instruction(&mut frame.ip);
             match inst.op() {
                 Opcode::ConstU64 => {
-                    let value = self.constant_pool().get(inst.into());
+                    let value = constants.get(inst.into());
                     self.data.push(value);
                 }
                 Opcode::Add => {
@@ -112,5 +109,11 @@ impl ExecutionContext {
             };
             inst.op() != Opcode::Halt
         } {}
+    }
+}
+
+impl Default for ExecutionContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
