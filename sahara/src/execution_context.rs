@@ -1,16 +1,14 @@
 use crate::constant_pool::ConstantPool;
 use crate::function::{FunctionIndex, FunctionTable, InstructionPointer};
 use crate::instruction::Opcode;
+use crate::local::{LocalAddress, LocalIndex, Locals};
 use crate::util::stack::Stack;
 use crate::value::Value;
 
-#[derive(Debug, Default, Clone, Copy)]
-struct LocalAddress(usize);
-
 struct Frame {
     ip: InstructionPointer,
-    local_offset: LocalAddress,
-    num_locals: u32,
+    begin: LocalAddress,
+    end: LocalAddress,
     function: FunctionIndex,
 }
 
@@ -18,39 +16,43 @@ impl Frame {
     pub fn new(locals: LocalAddress, function: FunctionIndex) -> Self {
         Frame {
             ip: InstructionPointer::new(),
-            local_offset: locals,
-            num_locals: 0,
+            begin: locals,
+            end: locals,
             function,
         }
     }
 
-    pub fn next_offset(&self) -> LocalAddress {
-        LocalAddress(self.local_offset.0 + self.num_locals as usize)
+    pub fn next_local(&mut self) -> LocalAddress {
+        let curr = self.end;
+        self.end.increment();
+        curr
+    }
+
+    pub fn local_address(&self, idx: LocalIndex) -> LocalAddress {
+        self.begin.relative_to(idx)
     }
 }
 
 struct Callstack {
     frames: Stack<Frame>,
-    locals: Vec<Value>,
 }
 
 impl Callstack {
     pub fn new() -> Self {
         Callstack {
             frames: Stack::new(),
-            locals: Vec::new(),
         }
     }
 
     pub fn initialize(&mut self, entrypoint: FunctionIndex) -> &mut Frame {
-        self.frames.push(Frame::new(LocalAddress(0), entrypoint));
+        self.frames
+            .push(Frame::new(LocalAddress::new(), entrypoint));
         self.frames.peek_mut()
     }
 
     pub fn push(&mut self, func: FunctionIndex) -> &mut Frame {
         let current_frame = self.frames.peek();
-        self.frames
-            .push(Frame::new(current_frame.next_offset(), func));
+        self.frames.push(Frame::new(current_frame.end, func));
         self.frames.peek_mut()
     }
 
@@ -69,9 +71,10 @@ struct Heap {}
 pub struct ExecutionContext {
     data: Stack<Value>,
     callstack: Callstack,
-    meta: MetaInformation,
-    heap: Heap,
-    debug: Option<DebugInformation>,
+    locals: Locals,
+    _meta: MetaInformation,
+    _heap: Heap,
+    _debug: Option<DebugInformation>,
 }
 
 impl ExecutionContext {
@@ -79,9 +82,10 @@ impl ExecutionContext {
         Self {
             data: Stack::new(),
             callstack: Callstack::new(),
-            meta: MetaInformation {},
-            heap: Heap {},
-            debug: None,
+            locals: Locals::new(),
+            _meta: MetaInformation {},
+            _heap: Heap {},
+            _debug: None,
         }
     }
 
@@ -115,11 +119,21 @@ impl ExecutionContext {
                 }
                 Opcode::Return => {
                     frame = self.callstack.pop();
-                    func = function_table.get(frame.function); // TODO: seems silly, find a better way
+                    func = function_table.get(frame.function);
                 }
                 Opcode::Print => {
                     let val = self.data.pop();
                     dbg!(val);
+                }
+                Opcode::LocalStore => {
+                    let addr = frame.next_local();
+                    let value = self.data.pop();
+                    self.locals.store_local(addr, value);
+                }
+                Opcode::LocalRead => {
+                    let idx = inst.local_index();
+                    let value = self.locals.read_local(frame.local_address(idx));
+                    self.data.push(value);
                 }
                 Opcode::Halt => {}
                 _ => panic!("opcode not yet implemented"),

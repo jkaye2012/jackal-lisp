@@ -5,7 +5,9 @@ use sahara::{
 
 fn one_plus_one(pool: &mut ConstantPool) -> Function {
     let instructions = vec![
-        Instruction::const_u64(pool.add_u64(1)),
+        Instruction::const_u64(pool.add_u64(100)),
+        Instruction::local_store(),
+        Instruction::local_read(0.into()),
         Instruction::const_u64(pool.add_u64(1)),
         Instruction::add(),
         Instruction::print(),
@@ -21,6 +23,8 @@ fn main() {
     let mut table = FunctionTable::new();
     let func_idx = table.insert(FunctionId::from_fq_name("one_plus_one".to_string()), func);
     let instructions = vec![
+        Instruction::const_u64(pool.add_u64(200)),
+        Instruction::local_store(),
         Instruction::const_u64(pool.add_u64(2)),
         Instruction::const_u64(pool.add_u64(2)),
         Instruction::add(),

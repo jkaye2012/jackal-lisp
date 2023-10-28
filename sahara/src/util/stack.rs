@@ -25,12 +25,4 @@ impl<T> Stack<T> {
             .last_mut()
             .expect("Attempted to peek empty stack")
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
-
-    pub fn len(&self) -> usize {
-        self.items.len()
-    }
 }

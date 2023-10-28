@@ -1,4 +1,7 @@
-use crate::{constant_pool::ConstantIndex, function::FunctionIndex, util::index::InstructionIndex};
+use crate::{
+    constant_pool::ConstantIndex, function::FunctionIndex, local::LocalIndex,
+    util::index::InstructionIndex,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
@@ -14,6 +17,8 @@ pub enum Opcode {
     Print,
     Call,
     Return,
+    LocalStore,
+    LocalRead,
 }
 
 impl From<Opcode> for u8 {
@@ -36,6 +41,8 @@ impl From<u8> for Opcode {
             8 => Self::Print,
             9 => Self::Call,
             10 => Self::Return,
+            11 => Self::LocalStore,
+            12 => Self::LocalRead,
             _ => panic!("encountered unknown opcode: {}", value),
         }
     }
@@ -65,13 +72,13 @@ impl Instruction {
         }
     }
 
-    fn binary(op: Opcode, a: u8, b: u8) -> Instruction {
+    fn _binary(op: Opcode, a: u8, b: u8) -> Instruction {
         Instruction {
             bytecode: (op as u32) << 24 | (a as u32) << 16 | (b as u32) << 8,
         }
     }
 
-    fn trinary(op: Opcode, a: u8, b: u8, c: u8) -> Instruction {
+    fn _trinary(op: Opcode, a: u8, b: u8, c: u8) -> Instruction {
         Instruction {
             bytecode: (op as u32) << 24 | (a as u32) << 16 | (b as u32) << 8 | (c as u32),
         }
@@ -120,6 +127,10 @@ impl Instruction {
         self.abc().into()
     }
 
+    pub fn local_index(&self) -> LocalIndex {
+        self.abc().into()
+    }
+
     pub fn imm_u8(value: u8) -> Instruction {
         Self::unary(Opcode::ImmU8, value)
     }
@@ -146,6 +157,14 @@ impl Instruction {
 
     pub fn ret() -> Instruction {
         Self::nullary(Opcode::Return)
+    }
+
+    pub fn local_store() -> Instruction {
+        Self::nullary(Opcode::LocalStore)
+    }
+
+    pub fn local_read(idx: LocalIndex) -> Instruction {
+        Self::indexed(Opcode::LocalRead, idx.into())
     }
 }
 

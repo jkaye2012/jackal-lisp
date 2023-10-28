@@ -2,6 +2,7 @@ mod constant_pool;
 mod execution_context;
 mod function;
 mod instruction;
+mod local;
 mod util;
 mod value;
 mod vm;
