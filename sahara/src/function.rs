@@ -77,6 +77,18 @@ pub struct FunctionTable {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct FunctionIndex(InstructionIndex);
 
+impl From<u32> for FunctionIndex {
+    fn from(value: u32) -> Self {
+        FunctionIndex(InstructionIndex::new(value as usize))
+    }
+}
+
+impl From<usize> for FunctionIndex {
+    fn from(value: usize) -> Self {
+        FunctionIndex(InstructionIndex::new(value))
+    }
+}
+
 impl From<FunctionIndex> for InstructionIndex {
     fn from(value: FunctionIndex) -> Self {
         value.0
@@ -91,10 +103,11 @@ impl FunctionTable {
         }
     }
 
-    pub fn insert(&mut self, id: FunctionId, func: Function) {
+    pub fn insert(&mut self, id: FunctionId, func: Function) -> FunctionIndex {
         let idx = self.functions.len();
         self.functions.push(func);
         self.indices.insert(id, idx);
+        idx.into()
     }
 
     pub fn address_of(&self, fq_name: &str) -> FunctionIndex {

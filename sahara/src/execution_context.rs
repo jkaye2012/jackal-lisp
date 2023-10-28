@@ -1,5 +1,5 @@
 use crate::constant_pool::ConstantPool;
-use crate::function::{Function, FunctionIndex, FunctionTable, InstructionPointer};
+use crate::function::{FunctionIndex, FunctionTable, InstructionPointer};
 use crate::instruction::Opcode;
 use crate::util::stack::Stack;
 use crate::value::Value;
@@ -9,7 +9,8 @@ struct LocalAddress(usize);
 
 struct Frame {
     ip: InstructionPointer,
-    locals: LocalAddress,
+    local_offset: LocalAddress,
+    num_locals: u32,
     function: FunctionIndex,
 }
 
@@ -17,9 +18,14 @@ impl Frame {
     pub fn new(locals: LocalAddress, function: FunctionIndex) -> Self {
         Frame {
             ip: InstructionPointer::new(),
-            locals,
+            local_offset: locals,
+            num_locals: 0,
             function,
         }
+    }
+
+    pub fn next_offset(&self) -> LocalAddress {
+        LocalAddress(self.local_offset.0 + self.num_locals as usize)
     }
 }
 
@@ -36,16 +42,21 @@ impl Callstack {
         }
     }
 
-    pub fn push(&mut self, frame: Frame) {
-        self.frames.push(frame);
-    }
-
-    pub fn peek(&mut self) -> &mut Frame {
+    pub fn initialize(&mut self, entrypoint: FunctionIndex) -> &mut Frame {
+        self.frames.push(Frame::new(LocalAddress(0), entrypoint));
         self.frames.peek_mut()
     }
 
-    pub fn pop(&mut self) {
+    pub fn push(&mut self, func: FunctionIndex) -> &mut Frame {
+        let current_frame = self.frames.peek();
+        self.frames
+            .push(Frame::new(current_frame.next_offset(), func));
+        self.frames.peek_mut()
+    }
+
+    pub fn pop(&mut self) -> &mut Frame {
         self.frames.pop();
+        self.frames.peek_mut()
     }
 }
 
@@ -82,12 +93,9 @@ impl ExecutionContext {
         function_table: &FunctionTable,
         entrypoint: &str,
     ) {
-        self.callstack.push(Frame::new(
-            LocalAddress(0),
-            function_table.address_of(entrypoint),
-        ));
-        let mut frame = self.callstack.peek();
-        let mut func = function_table.get(frame.function);
+        let entrypoint_index = function_table.address_of(entrypoint);
+        let mut frame = self.callstack.initialize(entrypoint_index);
+        let mut func = function_table.get(entrypoint_index);
         while {
             let inst = func.next_instruction(&mut frame.ip);
             match inst.op() {
@@ -99,6 +107,15 @@ impl ExecutionContext {
                     let a = self.data.pop();
                     let b = self.data.pop();
                     self.data.push(a + b);
+                }
+                Opcode::Call => {
+                    let idx = inst.function_index();
+                    func = function_table.get(idx);
+                    frame = self.callstack.push(idx);
+                }
+                Opcode::Return => {
+                    frame = self.callstack.pop();
+                    func = function_table.get(frame.function); // TODO: seems silly, find a better way
                 }
                 Opcode::Print => {
                     let val = self.data.pop();

@@ -19,6 +19,7 @@ impl VirtualMachine {
         }
     }
 
+    // TODO: consider packaging these references up into a struct to simplify this signature?
     pub fn run(&mut self) {
         self.context
             .run(&self.constants, &self.function_table, "main");

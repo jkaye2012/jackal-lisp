@@ -8,6 +8,12 @@ impl From<ConstantIndex> for InstructionIndex {
     }
 }
 
+impl From<u32> for ConstantIndex {
+    fn from(value: u32) -> Self {
+        ConstantIndex(InstructionIndex::new(value as usize))
+    }
+}
+
 #[derive(Default)]
 pub struct ConstantPool {
     constants: Vec<Value>,

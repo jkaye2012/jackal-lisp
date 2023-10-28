@@ -13,6 +13,7 @@ pub enum Opcode {
     Add,
     Print,
     Call,
+    Return,
 }
 
 impl From<Opcode> for u8 {
@@ -34,6 +35,7 @@ impl From<u8> for Opcode {
             7 => Self::Add,
             8 => Self::Print,
             9 => Self::Call,
+            10 => Self::Return,
             _ => panic!("encountered unknown opcode: {}", value),
         }
     }
@@ -43,25 +45,6 @@ impl From<u8> for Opcode {
 pub struct Instruction {
     bytecode: u32,
 }
-
-// impl From<Instruction> for u32 {
-//     fn from(value: Instruction) -> Self {
-//         (value.opcode as u32) << 24
-//             | u32::from(value.a) << 16
-//             | u32::from(value.b) << 8
-//             | u32::from(value.c)
-//     }
-// }
-
-// impl From<u32> for Instruction {
-//     fn from(value: u32) -> Self {
-//         let opcode = Opcode::from((value >> 24) as u8);
-//         let a = ((value >> 16) & 0xff) as u8;
-//         let b = ((value >> 8) & 0xff) as u8;
-//         let c = (value & 0xff) as u8;
-//         Instruction { opcode, a, b, c }
-//     }
-// }
 
 impl From<Instruction> for InstructionIndex {
     fn from(value: Instruction) -> Self {
@@ -129,6 +112,14 @@ impl Instruction {
         self.bytecode & 0xFFFFFF
     }
 
+    pub fn function_index(&self) -> FunctionIndex {
+        self.abc().into()
+    }
+
+    pub fn constant_index(&self) -> ConstantIndex {
+        self.abc().into()
+    }
+
     pub fn imm_u8(value: u8) -> Instruction {
         Self::unary(Opcode::ImmU8, value)
     }
@@ -151,6 +142,10 @@ impl Instruction {
 
     pub fn call(idx: FunctionIndex) -> Instruction {
         Self::indexed(Opcode::Call, idx.into())
+    }
+
+    pub fn ret() -> Instruction {
+        Self::nullary(Opcode::Return)
     }
 }
 

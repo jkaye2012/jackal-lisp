@@ -7,6 +7,12 @@ impl From<usize> for InstructionIndex {
     }
 }
 
+impl From<u32> for InstructionIndex {
+    fn from(value: u32) -> Self {
+        InstructionIndex::new(value as usize)
+    }
+}
+
 impl From<InstructionIndex> for usize {
     fn from(value: InstructionIndex) -> Self {
         value.0
