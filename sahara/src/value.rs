@@ -20,18 +20,18 @@ pub enum Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Bool(_) => write!(f, "Bool"),
-            Self::Char(_) => write!(f, "Char"),
-            Self::U8(_) => write!(f, "U8"),
-            Self::U16(_) => write!(f, "U16"),
-            Self::U32(_) => write!(f, "U32"),
-            Self::U64(_) => write!(f, "U64"),
-            Self::I8(_) => write!(f, "I8"),
-            Self::I16(_) => write!(f, "I16"),
-            Self::I32(_) => write!(f, "I32"),
-            Self::I64(_) => write!(f, "I64"),
-            Self::F32(_) => write!(f, "F32"),
-            Self::F64(_) => write!(f, "F64"),
+            Self::Bool(val) => write!(f, "Bool({})", val),
+            Self::Char(val) => write!(f, "Char({})", val),
+            Self::U8(val) => write!(f, "U8({})", val),
+            Self::U16(val) => write!(f, "U16({})", val),
+            Self::U32(val) => write!(f, "U32({})", val),
+            Self::U64(val) => write!(f, "U64({})", val),
+            Self::I8(val) => write!(f, "I8({})", val),
+            Self::I16(val) => write!(f, "I16({})", val),
+            Self::I32(val) => write!(f, "I32({})", val),
+            Self::I64(val) => write!(f, "I64({})", val),
+            Self::F32(val) => write!(f, "F32({})", val),
+            Self::F64(val) => write!(f, "F64({})", val),
         }
     }
 }
