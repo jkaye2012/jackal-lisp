@@ -103,10 +103,7 @@ impl ExecutionContext {
         while {
             let inst = func.next_instruction(&mut frame.ip);
             match inst.op() {
-                Opcode::ConstU64 => {
-                    let value = constants.get(inst.into());
-                    self.data.push(value);
-                }
+                Opcode::Halt => {}
                 Opcode::Add => {
                     let a = self.data.pop();
                     let b = self.data.pop();
@@ -135,7 +132,28 @@ impl ExecutionContext {
                     let value = self.locals.read_local(frame.local_address(idx));
                     self.data.push(value);
                 }
-                Opcode::Halt => {}
+                Opcode::ImmI16 => {
+                    self.data.push(Value::I16(inst.i16()));
+                }
+                Opcode::ImmI8 => {
+                    self.data.push(Value::I8(inst.i8()));
+                }
+                Opcode::ImmU16 => {
+                    self.data.push(Value::U16(inst.u16()));
+                }
+                Opcode::ImmU8 => {
+                    self.data.push(Value::U8(inst.u8()));
+                }
+                Opcode::ImmChar => {
+                    self.data.push(Value::Char(inst.char()));
+                }
+                Opcode::ImmBool => {
+                    self.data.push(Value::Bool(inst.bool()));
+                }
+                Opcode::Const => {
+                    let value = constants.get(inst.into());
+                    self.data.push(value);
+                }
                 _ => panic!("opcode not yet implemented"),
             };
             inst.op() != Opcode::Halt

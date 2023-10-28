@@ -12,6 +12,8 @@ Sahara instance. A per-execution-context program counter points to the current l
 execution context. Debug and meta information may refer directly to instruction memory to provide their corresponding
 functionality.
 
+## Constant pool
+
 ## Data stack
 
 The data stack contains values that need not persist beyond the scope of a single stack frame. Instructions exist to
@@ -23,6 +25,8 @@ execution of a program.
 The call stack contains the return addresses of functions as they're invoked within the VM and provides storage for
 function-local variables. Values can be loaded to and from the data stack into the call stack using specialized
 instructions.
+
+## Local storage
 
 ## Heap
 

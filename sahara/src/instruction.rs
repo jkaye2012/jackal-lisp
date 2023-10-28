@@ -7,18 +7,19 @@ use crate::{
 #[repr(u8)]
 pub enum Opcode {
     Halt,
-    ImmU8,
-    ConstU64,
-    ImmI8,
-    ConstI64,
-    ImmTrue,
-    ImmFalse,
     Add,
     Print,
     Call,
     Return,
     LocalStore,
     LocalRead,
+    ImmI16 = 248,
+    ImmI8 = 249,
+    ImmU16 = 250,
+    ImmU8 = 251,
+    ImmChar = 252,
+    ImmBool = 253,
+    Const = 254,
 }
 
 impl From<Opcode> for u8 {
@@ -31,18 +32,19 @@ impl From<u8> for Opcode {
     fn from(value: u8) -> Self {
         match value {
             0 => Self::Halt,
-            1 => Self::ImmU8,
-            2 => Self::ConstU64,
-            3 => Self::ImmI8,
-            4 => Self::ConstI64,
-            5 => Self::ImmTrue,
-            6 => Self::ImmFalse,
-            7 => Self::Add,
-            8 => Self::Print,
-            9 => Self::Call,
-            10 => Self::Return,
-            11 => Self::LocalStore,
-            12 => Self::LocalRead,
+            1 => Self::Add,
+            2 => Self::Print,
+            3 => Self::Call,
+            4 => Self::Return,
+            5 => Self::LocalStore,
+            6 => Self::LocalRead,
+            248 => Self::ImmI16,
+            249 => Self::ImmI8,
+            250 => Self::ImmU16,
+            251 => Self::ImmU8,
+            252 => Self::ImmChar,
+            253 => Self::ImmBool,
+            254 => Self::Const,
             _ => panic!("encountered unknown opcode: {}", value),
         }
     }
@@ -66,7 +68,7 @@ impl Instruction {
         }
     }
 
-    fn unary(op: Opcode, a: u8) -> Instruction {
+    fn _unary(op: Opcode, a: u8) -> Instruction {
         Instruction {
             bytecode: (op as u32) << 24 | (a as u32) << 16,
         }
@@ -131,12 +133,32 @@ impl Instruction {
         self.abc().into()
     }
 
-    pub fn imm_u8(value: u8) -> Instruction {
-        Self::unary(Opcode::ImmU8, value)
+    pub fn u8(&self) -> u8 {
+        self.a()
     }
 
-    pub fn const_u64(idx: ConstantIndex) -> Instruction {
-        Self::indexed(Opcode::ConstU64, idx.into())
+    pub fn u16(&self) -> u16 {
+        self.ab()
+    }
+
+    pub fn i8(&self) -> i8 {
+        self.a() as i8
+    }
+
+    pub fn i16(&self) -> i16 {
+        self.ab() as i16
+    }
+
+    pub fn char(&self) -> char {
+        self.a() as char
+    }
+
+    pub fn bool(&self) -> bool {
+        self.a() != 0
+    }
+
+    pub fn constant(idx: ConstantIndex) -> Instruction {
+        Self::indexed(Opcode::Const, idx.into())
     }
 
     pub fn add() -> Instruction {
@@ -174,14 +196,14 @@ mod tests {
 
     #[test]
     fn test_instruction_to_u32() {
-        let instruction = Instruction::trinary(Opcode::ImmU8, 1, 1, 1);
-        assert_eq!(instruction.bytecode, 16843009);
+        let instruction = Instruction::_trinary(Opcode::Const, 1, 1, 1);
+        assert_eq!(instruction.bytecode, 4261478657);
     }
 
     #[test]
     fn test_u32_to_instruction() {
         let instruction = Instruction { bytecode: 33686018 };
-        assert_eq!(instruction.op(), Opcode::ConstU64);
+        assert_eq!(instruction.op(), Opcode::Print);
         assert_eq!(instruction.a(), 2);
         assert_eq!(instruction.b(), 2);
         assert_eq!(instruction.c(), 2);
