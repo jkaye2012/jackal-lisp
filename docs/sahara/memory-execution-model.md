@@ -17,6 +17,8 @@ documentation](./execution-context.md).
 
 ## Context allocation
 
+## Function table
+
 ## Program execution
 
 ## Concurrency

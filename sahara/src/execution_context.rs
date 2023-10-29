@@ -169,7 +169,6 @@ impl ExecutionContext {
                     let value = constants.get(inst.into());
                     self.data.push(value);
                 }
-                _ => panic!("opcode not yet implemented"),
             };
             inst.op() != Opcode::Halt
         } {}

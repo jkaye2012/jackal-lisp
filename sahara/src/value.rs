@@ -46,26 +46,29 @@ impl Value {
     }
 
     fn u16(&self) -> u16 {
-        if let Self::U16(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to u16: {}", self);
+        match self {
+            Self::U8(val) => *val as u16,
+            Self::U16(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to u16: {}", self),
         }
     }
 
     fn u32(&self) -> u32 {
-        if let Self::U32(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to u32: {}", self);
+        match self {
+            Self::U8(val) => *val as u32,
+            Self::U16(val) => *val as u32,
+            Self::U32(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to u32: {}", self),
         }
     }
 
     fn u64(&self) -> u64 {
-        if let Self::U64(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to u64: {}", self);
+        match self {
+            Self::U8(val) => *val as u64,
+            Self::U16(val) => *val as u64,
+            Self::U32(val) => *val as u64,
+            Self::U64(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to u64: {}", self),
         }
     }
 
@@ -78,42 +81,58 @@ impl Value {
     }
 
     fn i16(&self) -> i16 {
-        if let Self::I16(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to i16: {}", self);
+        match self {
+            Self::I8(val) => *val as i16,
+            Self::I16(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to i16: {}", self),
         }
     }
 
     fn i32(&self) -> i32 {
-        if let Self::I32(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to i32: {}", self);
+        match self {
+            Self::I8(val) => *val as i32,
+            Self::I16(val) => *val as i32,
+            Self::I32(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to i32: {}", self),
         }
     }
 
     fn i64(&self) -> i64 {
-        if let Self::I64(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to i64: {}", self);
+        match self {
+            Self::I8(val) => *val as i64,
+            Self::I16(val) => *val as i64,
+            Self::I32(val) => *val as i64,
+            Self::I64(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to i64: {}", self),
         }
     }
 
     fn f32(&self) -> f32 {
-        if let Self::F32(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to f32: {}", self);
+        match self {
+            Self::I8(val) => *val as f32,
+            Self::I16(val) => *val as f32,
+            Self::I32(val) => *val as f32,
+            Self::U8(val) => *val as f32,
+            Self::U16(val) => *val as f32,
+            Self::U32(val) => *val as f32,
+            Self::F32(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to f32: {}", self),
         }
     }
 
     fn f64(&self) -> f64 {
-        if let Self::F64(val) = self {
-            *val
-        } else {
-            panic!("Attempted to coerce invalid type to f64: {}", self);
+        match self {
+            Self::I8(val) => *val as f64,
+            Self::I16(val) => *val as f64,
+            Self::I32(val) => *val as f64,
+            Self::I64(val) => *val as f64,
+            Self::U8(val) => *val as f64,
+            Self::U16(val) => *val as f64,
+            Self::U32(val) => *val as f64,
+            Self::U64(val) => *val as f64,
+            Self::F32(val) => *val as f64,
+            Self::F64(val) => *val,
+            _ => panic!("Attempted to coerce invalid type to f64: {}", self),
         }
     }
 }
