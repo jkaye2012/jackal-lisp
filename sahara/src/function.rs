@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
 use crate::{util::index::InstructionIndex, Instruction};
 
@@ -19,6 +19,15 @@ impl InstructionPointer {
 
 pub struct Function {
     instructions: Vec<Instruction>,
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for i in &self.instructions {
+            writeln!(f, "{}", i)?;
+        }
+        Ok(())
+    }
 }
 
 impl Function {

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     constant_pool::ConstantIndex, function::FunctionIndex, local::LocalIndex,
     util::index::InstructionIndex,
@@ -52,6 +54,30 @@ impl From<u8> for Opcode {
             253 => Self::ImmBool,
             254 => Self::Const,
             _ => panic!("encountered unknown opcode: {}", value),
+        }
+    }
+}
+
+impl Display for Opcode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Halt => write!(f, "halt"),
+            Self::Add => write!(f, "add"),
+            Self::Sub => write!(f, "sub"),
+            Self::Mul => write!(f, "mul"),
+            Self::Div => write!(f, "div"),
+            Self::Print => write!(f, "print"),
+            Self::Call => write!(f, "call"),
+            Self::Return => write!(f, "return"),
+            Self::LocalStore => write!(f, "local_store"),
+            Self::LocalRead => write!(f, "local_read"),
+            Self::ImmI16 => write!(f, "imm_i16"),
+            Self::ImmI8 => write!(f, "imm_i8"),
+            Self::ImmU16 => write!(f, "imm_u16"),
+            Self::ImmU8 => write!(f, "imm_u8"),
+            Self::ImmChar => write!(f, "imm_char"),
+            Self::ImmBool => write!(f, "imm_bool"),
+            Self::Const => write!(f, "const"),
         }
     }
 }
@@ -205,6 +231,31 @@ impl Instruction {
 
     pub fn local_read(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::LocalRead, idx.into())
+    }
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.op())?;
+        match self.op() {
+            Opcode::Call => write!(f, " {}", self.abc()),
+            Opcode::LocalRead => write!(f, " {}", self.abc()),
+            Opcode::ImmI16 => write!(f, " {}", self.i16()),
+            Opcode::ImmI8 => write!(f, " {}", self.i8()),
+            Opcode::ImmU16 => write!(f, " {}", self.u16()),
+            Opcode::ImmU8 => write!(f, " {}", self.u8()),
+            Opcode::ImmChar => write!(f, " {}", self.char()),
+            Opcode::ImmBool => write!(f, " {}", self.bool()),
+            Opcode::Const => write!(f, " {}", self.abc()),
+            Opcode::Halt
+            | Opcode::Return
+            | Opcode::Add
+            | Opcode::Sub
+            | Opcode::Mul
+            | Opcode::Div
+            | Opcode::LocalStore
+            | Opcode::Print => Ok(()),
+        }
     }
 }
 
