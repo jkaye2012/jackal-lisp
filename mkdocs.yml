@@ -40,6 +40,8 @@ nav:
       - sahara/traits.md
       - sahara/conditions.md
       - sahara/effects.md
+      - sahara/static-memory.md
+      - sahara/dynamic-memory.md
       - sahara/bytecode.md
       - sahara/debug.md
       - sahara/metaprogramming.md

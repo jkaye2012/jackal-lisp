@@ -28,6 +28,8 @@ instructions.
 
 ## Local storage
 
+For more information, see the [static memory](./static-memory.md) documentation.
+
 ## Heap
 
 The heap stores data that must persist beyond the scope of a single stack frame. Unlike most other virtual machines, a
@@ -38,6 +40,8 @@ Data that must be shared across execution contexts must be sent explicitly using
 purpose. Data can either be moved or copied between heaps, but live references across heaps are never permitted. Within
 a single context, any number of references can be made to the same data; because contexts are guaranteed to operate on a
 single operating system thread, there is no risk of data races.
+
+For more information see the [dynamic memory](./dynamic-memory.md) documentation.
 
 ## Meta information
 

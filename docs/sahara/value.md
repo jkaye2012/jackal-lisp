@@ -25,3 +25,8 @@ The following primitive types are supported by `Value`:
 | f64  | 64 bit floating point   |
 
 ## Compound types
+
+| Type   | Description                                                                         |
+|--------|-------------------------------------------------------------------------------------|
+| string | [A sequence of characters](https://en.wikipedia.org/wiki/String_(computer_science)) |
+| data   | An arbitrary [data type](./data-types.md)                                           |
