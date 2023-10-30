@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
-use crate::{util::index::InstructionIndex, Instruction};
+use crate::{module_registry::ModuleName, util::index::InstructionIndex, Instruction};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct InstructionPointer(usize);
@@ -61,13 +61,15 @@ pub struct FunctionId {
     fq_name: String,
 }
 
-impl FunctionId {
-    pub fn new(module_name: &str, function_name: &str) -> Self {
-        let fq_name = format!("{}::{}", module_name, function_name);
-        FunctionId { fq_name }
+impl Display for FunctionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.fq_name)
     }
+}
 
-    pub fn from_fq_name(fq_name: String) -> Self {
+impl FunctionId {
+    pub fn new(module_name: &ModuleName, function_name: &str) -> Self {
+        let fq_name = format!("{}::{}", module_name.name(), function_name);
         FunctionId { fq_name }
     }
 }
@@ -113,6 +115,9 @@ impl FunctionTable {
     }
 
     pub fn insert(&mut self, id: FunctionId, func: Function) -> FunctionIndex {
+        if self.indices.contains_key(&id) {
+            panic!("Attempted registration of duplicate function: {}", id);
+        }
         let idx = self.functions.len();
         self.functions.push(func);
         self.indices.insert(id, idx);

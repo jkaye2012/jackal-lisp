@@ -1,6 +1,6 @@
 use sahara::{
     ConstantPool, ExecutionContext, Function, FunctionId, FunctionTable, Instruction,
-    VirtualMachine,
+    ModuleRegistry, VirtualMachine,
 };
 
 fn one_plus_one(pool: &mut ConstantPool) -> Function {
@@ -17,11 +17,13 @@ fn one_plus_one(pool: &mut ConstantPool) -> Function {
 }
 
 fn main() {
+    let mut modules = ModuleRegistry::new();
+    let module_name = modules.register("main".to_string());
     let context = ExecutionContext::new();
     let mut pool = ConstantPool::default();
     let func = one_plus_one(&mut pool);
     let mut table = FunctionTable::new();
-    let func_idx = table.insert(FunctionId::from_fq_name("one_plus_one".to_string()), func);
+    let func_idx = table.insert(module_name.function_id("one_plus_one"), func);
     let instructions = vec![
         Instruction::constant(pool.add_u64(200)),
         Instruction::local_store(),
@@ -35,7 +37,7 @@ fn main() {
         Instruction::halt(),
     ];
     let entrypoint = Function::from_instructions(instructions);
-    table.insert(FunctionId::from_fq_name("main".to_string()), entrypoint);
+    table.insert(module_name.function_id("main"), entrypoint);
     let mut vm = VirtualMachine::new(context, table, pool);
     vm.run();
 }
