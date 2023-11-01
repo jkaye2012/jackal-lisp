@@ -4,32 +4,27 @@ use crate::instruction::Opcode;
 use crate::local::{LocalAddress, LocalIndex, Locals};
 use crate::util::stack::Stack;
 use crate::value::Value;
+use crate::{Function, ValueType};
 
 struct Frame {
     ip: InstructionPointer,
-    begin: LocalAddress,
-    end: LocalAddress,
+    locals_begin: LocalAddress,
+    locals_end: LocalAddress,
     function: FunctionIndex,
 }
 
 impl Frame {
-    pub fn new(locals: LocalAddress, function: FunctionIndex) -> Self {
+    pub fn new(locals: LocalAddress, function: &Function) -> Self {
         Frame {
             ip: InstructionPointer::new(),
-            begin: locals,
-            end: locals,
-            function,
+            locals_begin: locals,
+            locals_end: function.local_slots().allocate(locals),
+            function: function.index(),
         }
     }
 
-    pub fn next_local(&mut self) -> LocalAddress {
-        let curr = self.end;
-        self.end.increment();
-        curr
-    }
-
-    pub fn local_address(&self, idx: LocalIndex) -> LocalAddress {
-        self.begin.relative_to(idx)
+    pub fn local_info(&self, function: &Function, idx: LocalIndex) -> (ValueType, LocalAddress) {
+        function.local_slots().slot_info(idx, self.locals_begin)
     }
 }
 
@@ -44,15 +39,15 @@ impl Callstack {
         }
     }
 
-    pub fn initialize(&mut self, entrypoint: FunctionIndex) -> &mut Frame {
+    pub fn initialize(&mut self, entrypoint: &Function) -> &mut Frame {
         self.frames
             .push(Frame::new(LocalAddress::new(), entrypoint));
         self.frames.peek_mut()
     }
 
-    pub fn push(&mut self, func: FunctionIndex) -> &mut Frame {
+    pub fn push(&mut self, func: &Function) -> &mut Frame {
         let current_frame = self.frames.peek();
-        self.frames.push(Frame::new(current_frame.end, func));
+        self.frames.push(Frame::new(current_frame.locals_end, func));
         self.frames.peek_mut()
     }
 
@@ -95,11 +90,11 @@ impl ExecutionContext {
         &mut self,
         constants: &ConstantPool,
         function_table: &FunctionTable,
-        entrypoint: &str,
+        entrypoint_index: FunctionIndex,
     ) {
-        let entrypoint_index = function_table.address_of(entrypoint);
-        let mut frame = self.callstack.initialize(entrypoint_index);
-        let mut func = function_table.get(entrypoint_index);
+        let entrypoint = function_table.get(entrypoint_index);
+        let mut frame = self.callstack.initialize(entrypoint);
+        let mut func = entrypoint;
         while {
             let inst = func.next_instruction(&mut frame.ip);
             match inst.op() {
@@ -127,7 +122,7 @@ impl ExecutionContext {
                 Opcode::Call => {
                     let idx = inst.function_index();
                     func = function_table.get(idx);
-                    frame = self.callstack.push(idx);
+                    frame = self.callstack.push(func);
                 }
                 Opcode::Return => {
                     frame = self.callstack.pop();
@@ -138,13 +133,15 @@ impl ExecutionContext {
                     dbg!(val);
                 }
                 Opcode::LocalStore => {
-                    let addr = frame.next_local();
+                    let idx = inst.local_index();
+                    let (_, addr) = frame.local_info(func, idx);
                     let value = self.data.pop();
                     self.locals.store_local(addr, value);
                 }
                 Opcode::LocalRead => {
                     let idx = inst.local_index();
-                    let value = self.locals.read_local(frame.local_address(idx));
+                    let (value_type, addr) = frame.local_info(func, idx);
+                    let value = self.locals.read_local(addr, &value_type);
                     self.data.push(value);
                 }
                 Opcode::ImmI16 => {

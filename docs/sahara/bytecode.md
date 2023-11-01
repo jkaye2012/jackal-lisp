@@ -145,6 +145,12 @@ different. While this may be inconvenient for the user, any other implementation
 | mul  | 3      |            | numeric, numeric | numeric | Multiply the two values on the top of the stack |
 | div  | 4      |            | numeric, numeric | numeric | Divide the two values on the top of the stack   |
 
+### Interacting with data types
+
+| Name | Opcode | Parameters | Stack | Returns | Description |
+|------|--------|------------|-------|---------|-------------|
+|      |        |            |       |         |             |
+
 ### IO operations
 
 IO operations allow Sahara to interact with the "external" world.

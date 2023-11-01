@@ -1,6 +1,8 @@
 use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
-use crate::{module_registry::ModuleName, util::index::InstructionIndex, Instruction};
+use crate::{
+    local::LocalSlots, module_registry::ModuleName, util::index::InstructionIndex, Instruction,
+};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct InstructionPointer(usize);
@@ -18,7 +20,9 @@ impl InstructionPointer {
 }
 
 pub struct Function {
+    index: FunctionIndex,
     instructions: Vec<Instruction>,
+    local_slots: LocalSlots,
 }
 
 impl Display for Function {
@@ -31,28 +35,36 @@ impl Display for Function {
 }
 
 impl Function {
-    pub fn new() -> Self {
+    pub fn new(index: FunctionIndex, local_slots: LocalSlots) -> Self {
         Function {
+            index,
             instructions: Vec::new(),
+            local_slots,
         }
     }
 
-    pub fn from_instructions(instructions: Vec<Instruction>) -> Self {
-        Function { instructions }
+    pub fn index(&self) -> FunctionIndex {
+        self.index
     }
 
-    pub fn add(&mut self, inst: Instruction) {
-        self.instructions.push(inst);
+    pub fn from_instructions(
+        index: FunctionIndex,
+        local_slots: LocalSlots,
+        instructions: Vec<Instruction>,
+    ) -> Self {
+        Function {
+            index,
+            instructions,
+            local_slots,
+        }
     }
 
     pub fn next_instruction(&self, ip: &mut InstructionPointer) -> Instruction {
         self.instructions[ip.increment()]
     }
-}
 
-impl Default for Function {
-    fn default() -> Self {
-        Self::new()
+    pub fn local_slots(&self) -> &LocalSlots {
+        &self.local_slots
     }
 }
 
@@ -114,14 +126,21 @@ impl FunctionTable {
         }
     }
 
-    pub fn insert(&mut self, id: FunctionId, func: Function) -> FunctionIndex {
+    pub fn insert(
+        &mut self,
+        id: FunctionId,
+        instructions: Vec<Instruction>,
+        locals: LocalSlots,
+    ) -> FunctionIndex {
         if self.indices.contains_key(&id) {
             panic!("Attempted registration of duplicate function: {}", id);
         }
         let idx = self.functions.len();
+        let function_index: FunctionIndex = idx.into();
+        let func = Function::from_instructions(function_index, locals, instructions);
         self.functions.push(func);
         self.indices.insert(id, idx);
-        idx.into()
+        function_index
     }
 
     pub fn address_of(&self, fq_name: &str) -> FunctionIndex {

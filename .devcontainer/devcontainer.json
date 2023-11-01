@@ -20,7 +20,8 @@
         "gruntfuggly.todo-tree",
         "github.copilot-chat",
         "darkriszty.markdown-table-prettify",
-        "streetsidesoftware.code-spell-checker"
+        "streetsidesoftware.code-spell-checker",
+        "vadimcn.vscode-lldb"
       ]
     }
   }

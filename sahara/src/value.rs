@@ -1,5 +1,93 @@
 use std::{fmt::Display, ops};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ValueType {
+    Bool,
+    Char,
+    U8,
+    U16,
+    U32,
+    U64,
+    I8,
+    I16,
+    I32,
+    I64,
+    F32,
+    F64,
+}
+
+impl ValueType {
+    pub fn size(&self) -> usize {
+        match self {
+            Self::Bool => 1,
+            Self::Char => 1,
+            Self::U8 => 1,
+            Self::U16 => 2,
+            Self::U32 => 4,
+            Self::U64 => 8,
+            Self::I8 => 1,
+            Self::I16 => 2,
+            Self::I32 => 4,
+            Self::I64 => 8,
+            Self::F32 => 4,
+            Self::F64 => 8,
+        }
+    }
+
+    pub fn create(&self, bytes: &[u8]) -> Value {
+        match self {
+            Self::Bool => {
+                let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
+                Value::Bool(mem[0] != 0)
+            }
+            Self::Char => {
+                let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
+                Value::Char(mem[0] as char)
+            }
+            Self::U8 => {
+                let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
+                Value::U8(mem[0])
+            }
+            Self::U16 => {
+                let mem: [u8; 2] = bytes.try_into().expect("Invalid memory");
+                Value::U16(u16::from_be_bytes(mem))
+            }
+            Self::U32 => {
+                let mem: [u8; 4] = bytes.try_into().expect("Invalid memory");
+                Value::U32(u32::from_be_bytes(mem))
+            }
+            Self::U64 => {
+                let mem: [u8; 8] = bytes.try_into().expect("Invalid memory");
+                Value::U64(u64::from_be_bytes(mem))
+            }
+            Self::I8 => {
+                let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
+                Value::I8(mem[0] as i8)
+            }
+            Self::I16 => {
+                let mem: [u8; 2] = bytes.try_into().expect("Invalid memory");
+                Value::I16(i16::from_be_bytes(mem))
+            }
+            Self::I32 => {
+                let mem: [u8; 4] = bytes.try_into().expect("Invalid memory");
+                Value::I32(i32::from_be_bytes(mem))
+            }
+            Self::I64 => {
+                let mem: [u8; 8] = bytes.try_into().expect("Invalid memory");
+                Value::I64(i64::from_be_bytes(mem))
+            }
+            Self::F32 => {
+                let mem: [u8; 4] = bytes.try_into().expect("Invalid memory");
+                Value::F32(f32::from_be_bytes(mem))
+            }
+            Self::F64 => {
+                let mem: [u8; 8] = bytes.try_into().expect("Invalid memory");
+                Value::F64(f64::from_be_bytes(mem))
+            }
+        }
+    }
+}
+
 // TODO: more compact representation, prevent padding for small values
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
@@ -37,6 +125,52 @@ impl Display for Value {
 }
 
 impl Value {
+    pub fn into_slice(&self, mem: &mut [u8]) {
+        match self {
+            Self::Bool(val) => {
+                if *val {
+                    mem.copy_from_slice(&[1]);
+                } else {
+                    mem.copy_from_slice(&[0]);
+                }
+            }
+            Self::Char(val) => {
+                val.encode_utf8(mem);
+            }
+            Self::U8(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::U16(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::U32(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::U64(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::I8(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::I16(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::I32(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::I64(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::F32(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::F64(val) => mem.copy_from_slice(&val.to_be_bytes()),
+        }
+    }
+
+    pub fn value_type(&self) -> ValueType {
+        match self {
+            Self::Bool(_) => ValueType::Bool,
+            Self::Char(_) => ValueType::Char,
+            Self::U8(_) => ValueType::U8,
+            Self::U16(_) => ValueType::U16,
+            Self::U32(_) => ValueType::U32,
+            Self::U64(_) => ValueType::U64,
+            Self::I8(_) => ValueType::I8,
+            Self::I16(_) => ValueType::I16,
+            Self::I32(_) => ValueType::I32,
+            Self::I64(_) => ValueType::I64,
+            Self::F32(_) => ValueType::F32,
+            Self::F64(_) => ValueType::F64,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        self.value_type().size()
+    }
+
     fn u8(&self) -> u8 {
         if let Self::U8(val) = self {
             *val

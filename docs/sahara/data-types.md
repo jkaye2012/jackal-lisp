@@ -39,8 +39,8 @@ Each type definition contains the following:
 A few notes on interpretation of these definitions:
 
 * All sizes and offsets are in terms of individual bytes
-* There is no guarantee that a definitions total size is equal to the sum of its field sizes, as padding my be required
-  to align the type with the alignment of its largest member
+* There is no guarantee that a definitions total size is equal to the sum of its field sizes, as padding my be added by
+  the VM implementation
 * Fields should generally be ordered from largest to smallest size to maximize instance density
 
 
@@ -103,4 +103,5 @@ Leading to the type instance for a `Color` with its name interned at address `0x
 
 When accessing the type instance, a compiler should reference the type definition to determine the offset into the
 instance that should be used to load or store the value of a field. From here, values can be loaded to/from the data
-stack or local registers as usual.
+stack or local registers as usual. See the [data type bytecode specification](./bytecode.md#interacting-with-data-types)
+for more details.

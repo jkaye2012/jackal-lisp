@@ -1,4 +1,8 @@
-use crate::{execution_context::ExecutionContext, function::FunctionTable, ConstantPool};
+use crate::{
+    execution_context::ExecutionContext,
+    function::{FunctionIndex, FunctionTable},
+    ConstantPool,
+};
 
 pub struct VirtualMachine {
     context: ExecutionContext,
@@ -20,8 +24,8 @@ impl VirtualMachine {
     }
 
     // TODO: consider packaging these references up into a struct to simplify this signature?
-    pub fn run(&mut self) {
+    pub fn run(&mut self, entrypoint: FunctionIndex) {
         self.context
-            .run(&self.constants, &self.function_table, "main::main");
+            .run(&self.constants, &self.function_table, entrypoint);
     }
 }

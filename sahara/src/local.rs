@@ -1,4 +1,53 @@
-use crate::{util::index::InstructionIndex, value::Value};
+use crate::{
+    util::index::InstructionIndex,
+    value::{Value, ValueType},
+};
+
+pub struct LocalSlots {
+    types: Vec<ValueType>,
+    offsets: Vec<usize>,
+    end: usize,
+}
+
+impl LocalSlots {
+    pub fn new() -> Self {
+        LocalSlots {
+            types: Vec::new(),
+            offsets: Vec::new(),
+            end: 0,
+        }
+    }
+
+    pub fn add_slot(&mut self, value_type: ValueType) {
+        self.types.push(value_type);
+        self.offsets.push(self.end);
+        self.end += value_type.size();
+    }
+
+    pub fn total_size(&self) -> usize {
+        self.types.iter().map(|v| v.size()).sum()
+    }
+
+    pub fn allocate(&self, addr: LocalAddress) -> LocalAddress {
+        LocalAddress(addr.0 + self.total_size())
+    }
+
+    pub fn slot_info(
+        &self,
+        slot_index: LocalIndex,
+        relative_to: LocalAddress,
+    ) -> (ValueType, LocalAddress) {
+        let idx: usize = slot_index.into();
+        let bytes = self.offsets[idx];
+        (self.types[idx], relative_to.offset(bytes))
+    }
+}
+
+impl Default for LocalSlots {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct LocalAddress(usize);
@@ -8,13 +57,8 @@ impl LocalAddress {
         LocalAddress(0)
     }
 
-    pub fn increment(&mut self) {
-        self.0 += 1;
-    }
-
-    pub fn relative_to(&self, idx: LocalIndex) -> LocalAddress {
-        let sz: usize = idx.into();
-        LocalAddress(self.0 + sz)
+    pub fn offset(&self, bytes: usize) -> LocalAddress {
+        LocalAddress(self.0 + bytes)
     }
 }
 
@@ -39,19 +83,27 @@ impl From<u32> for LocalIndex {
 }
 
 pub struct Locals {
-    locals: Vec<Value>,
+    bytes: Vec<u8>,
 }
 
 impl Locals {
     pub fn new() -> Self {
-        Locals { locals: Vec::new() }
+        Locals {
+            bytes: Vec::with_capacity(4000), // TODO: make configurable
+        }
     }
 
     pub fn store_local(&mut self, addr: LocalAddress, value: Value) {
-        self.locals.insert(addr.0, value);
+        let sz = value.size();
+        self.bytes.reserve(sz);
+        if self.bytes.len() < self.bytes.capacity() {
+            self.bytes.resize(self.bytes.capacity(), 0);
+        }
+        let mem = &mut self.bytes[addr.0..addr.0 + sz];
+        value.into_slice(mem);
     }
 
-    pub fn read_local(&self, addr: LocalAddress) -> Value {
-        self.locals[addr.0]
+    pub fn read_local(&self, addr: LocalAddress, value_type: &ValueType) -> Value {
+        value_type.create(&self.bytes[addr.0..addr.0 + value_type.size()])
     }
 }
