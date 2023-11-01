@@ -78,13 +78,14 @@ interpret these bytes separately would instead be specified as `a: u8, b: u8`.
 Most of the immediate parameter types within the specification are obvious. A few are specific to Sahara that could be
 confusing:
 
-* `cidx`: an index into the global constant pool
-* `fidx`: an index into the global function table
-* `hidx`: a memory location in the current execution context's heap
-* `lidx`: a relative offset into the current execution context's local storage
+* `cidx`: `constant index`, an index into the global constant pool
+* `fidx`: `function index`, an index into the global function table
+* `tidx`: `type index`, an index into the global type definition table
+* `hidx`: `heap index`, a memory location in the current execution context's heap
+* `lidx`: `local index`, a relative offset into the current execution context's local storage
+* `didx`: `data index`, a relative offset into a data type's [field definition](./data-types.md#type-definitions)
 
-Each of these should be read as a mnemonic; they are pronounced "constant index", "function index", "heap index", and
-"local index" respectively.
+Each of these indices is 24 bits wide, occupying the `abc` bits using big endian encoding.
 
 ## Specification
 
@@ -126,7 +127,7 @@ they are indexed using the order in which they are defined (beginning with index
 
 | Name        | Opcode | Parameters | Stack | Returns | Description                                             |
 |-------------|--------|------------|-------|---------|---------------------------------------------------------|
-| local_store | 8      |            | value |         | Store a value into a local variable from the data stack |
+| local_store | 8      | abc; lidx  | value |         | Store a value into a local variable from the data stack |
 | local_read  | 9      | abc: lidx  |       | value   | Load a local variable onto the data stack               |
 
 ### Arithmetic operations
@@ -147,9 +148,55 @@ different. While this may be inconvenient for the user, any other implementation
 
 ### Interacting with data types
 
-| Name | Opcode | Parameters | Stack | Returns | Description |
-|------|--------|------------|-------|---------|-------------|
-|      |        |            |       |         |             |
+| Name          | Opcode | Parameters | Stack           | Returns | Description                                                 |
+|---------------|--------|------------|-----------------|---------|-------------------------------------------------------------|
+| dt_create     | 10     | abc: tidx  | multiple values | value   | Create a [type instance](./data-types.md#type-instances)    |
+| dt_read_field | 11     | abc: didx  | value           | value   | Load the value of a data type's field onto the data stack   |
+| dt_set_field  | 12     | abc:didx   | value           | value   | Update the value of a data type's field from the data stack |
+
+#### dt_create
+
+The `dt_create` instruction warrants a more in-depth description. The instruction accepts a single immediate parameter,
+an index into the [global type definition table](./global-context.md#type-definitions). The type definition contains
+information about fields required to create an instance of the type; namely, the number of fields and the type of each
+field.
+
+Callers should ensure that a single value for each required field is pushed onto the data stack before `dt_create` is
+invoked. The instruction will pop a value off of the stack for each required field, expecting that fields have been
+pushed in reverse order relative to the type definition.
+
+For example, consider the data type:
+
+```lisp
+(data Rgb
+ [red u8]
+ [green u8]
+ [blue u8])
+```
+
+The type definition entry for this type would look like:
+
+```yaml
+name: Rgb
+fields:
+  - name: red
+    type: u8
+  - name: green
+    type: u8
+  - name: blue
+    type: u8
+```
+
+To create the color cyan (`0x00FFFF`), the user would push the `blue` byte, then `green`, then `red`, followed by the
+create instruction. Assuming that the type definition for `Rgb` lies at index `4` of the type definition table, this
+creation would be represented by:
+
+```
+imm_u8 0xFF
+imm_u8 0xFF
+imm_u8 0x00
+dt_create 0x4
+```
 
 ### IO operations
 

@@ -12,8 +12,6 @@ Sahara instance. A per-execution-context program counter points to the current l
 execution context. Debug and meta information may refer directly to instruction memory to provide their corresponding
 functionality.
 
-## Constant pool
-
 ## Data stack
 
 The data stack contains values that need not persist beyond the scope of a single stack frame. Instructions exist to
