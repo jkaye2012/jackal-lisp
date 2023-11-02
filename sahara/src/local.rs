@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     util::index::InstructionIndex,
     value::{Value, ValueType},
@@ -52,6 +54,12 @@ impl Default for LocalSlots {
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct LocalAddress(usize);
 
+impl Display for LocalAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl LocalAddress {
     pub fn new() -> Self {
         LocalAddress(0)
@@ -104,6 +112,6 @@ impl Locals {
     }
 
     pub fn read_local(&self, addr: LocalAddress, value_type: &ValueType) -> Value {
-        value_type.create(&self.bytes[addr.0..addr.0 + value_type.size()])
+        value_type.create_local(addr, &self.bytes[addr.0..addr.0 + value_type.size()])
     }
 }

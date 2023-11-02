@@ -1,5 +1,7 @@
 use std::{fmt::Display, ops};
 
+use crate::local::LocalAddress;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueType {
     Bool,
@@ -14,7 +16,17 @@ pub enum ValueType {
     I64,
     F32,
     F64,
+    LocalData(usize),
 }
+
+// To implement data types:
+// 1. type definitions
+// 2. global type definition table
+// 3. ValueType and Value for DataType
+// 4. Instructions documented in bytecode.md
+//
+// After this, probably best to start thinking about a simple Heap implementation
+// Then Strings, then traits, then more thought on whether conditions and effects can/should be combined
 
 impl ValueType {
     pub fn size(&self) -> usize {
@@ -31,10 +43,11 @@ impl ValueType {
             Self::I64 => 8,
             Self::F32 => 4,
             Self::F64 => 8,
+            Self::LocalData(size) => *size,
         }
     }
 
-    pub fn create(&self, bytes: &[u8]) -> Value {
+    pub fn create_local(&self, addr: LocalAddress, bytes: &[u8]) -> Value {
         match self {
             Self::Bool => {
                 let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
@@ -84,6 +97,7 @@ impl ValueType {
                 let mem: [u8; 8] = bytes.try_into().expect("Invalid memory");
                 Value::F64(f64::from_be_bytes(mem))
             }
+            Self::LocalData(size) => Value::LocalData(addr, *size),
         }
     }
 }
@@ -103,6 +117,7 @@ pub enum Value {
     I64(i64),
     F32(f32),
     F64(f64),
+    LocalData(LocalAddress, usize),
 }
 
 impl Display for Value {
@@ -120,15 +135,16 @@ impl Display for Value {
             Self::I64(val) => write!(f, "I64({})", val),
             Self::F32(val) => write!(f, "F32({})", val),
             Self::F64(val) => write!(f, "F64({})", val),
+            Self::LocalData(addr, size) => write!(f, "LocalData({}, {})", addr, size),
         }
     }
 }
 
 impl Value {
-    pub fn into_slice(&self, mem: &mut [u8]) {
+    pub fn into_slice(self, mem: &mut [u8]) {
         match self {
             Self::Bool(val) => {
-                if *val {
+                if val {
                     mem.copy_from_slice(&[1]);
                 } else {
                     mem.copy_from_slice(&[0]);
@@ -147,6 +163,7 @@ impl Value {
             Self::I64(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::F32(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::F64(val) => mem.copy_from_slice(&val.to_be_bytes()),
+            Self::LocalData(_, _) => panic!("local_store supports only statically sized values"),
         }
     }
 
@@ -164,6 +181,7 @@ impl Value {
             Self::I64(_) => ValueType::I64,
             Self::F32(_) => ValueType::F32,
             Self::F64(_) => ValueType::F64,
+            Self::LocalData(_, size) => ValueType::LocalData(*size),
         }
     }
 

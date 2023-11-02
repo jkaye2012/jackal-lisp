@@ -1,4 +1,5 @@
 mod constant_pool;
+mod data_type;
 mod execution_context;
 mod function;
 mod instruction;
@@ -9,6 +10,7 @@ mod value;
 mod vm;
 
 pub use constant_pool::ConstantPool;
+pub use data_type::{TypeDefinition, TypeId, TypeIndex, TypeTable};
 pub use execution_context::ExecutionContext;
 pub use function::{Function, FunctionId, FunctionIndex, FunctionTable};
 pub use instruction::Instruction;

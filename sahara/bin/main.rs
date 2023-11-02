@@ -1,6 +1,6 @@
 use sahara::{
-    ConstantPool, ExecutionContext, Function, FunctionId, FunctionIndex, FunctionTable,
-    Instruction, LocalSlots, ModuleRegistry, VirtualMachine,
+    ConstantPool, ExecutionContext, FunctionId, FunctionIndex, FunctionTable, Instruction,
+    LocalSlots, ModuleRegistry, TypeTable, VirtualMachine,
 };
 
 fn one_plus_one(
@@ -26,10 +26,11 @@ fn main() {
     let mut modules = ModuleRegistry::new();
     let module_name = modules.register("main".to_string());
     let context = ExecutionContext::new();
-    let mut table = FunctionTable::new();
+    let mut function_table = FunctionTable::new();
+    let mut type_table = TypeTable::new();
     let onepone = module_name.function_id("one_plus_one");
     let mut pool = ConstantPool::default();
-    let func_idx = one_plus_one(&mut pool, &mut table, onepone);
+    let func_idx = one_plus_one(&mut pool, &mut function_table, onepone);
     let instructions = vec![
         Instruction::constant(pool.add_u64(200)),
         Instruction::local_store(),
@@ -45,7 +46,7 @@ fn main() {
     let mut locals = LocalSlots::new();
     locals.add_slot(sahara::ValueType::U64);
     let main = module_name.function_id("main");
-    let main_idx = table.insert(main, instructions, locals);
-    let mut vm = VirtualMachine::new(context, table, pool);
+    let main_idx = function_table.insert(main, instructions, locals);
+    let mut vm = VirtualMachine::new(context, function_table, pool, type_table);
     vm.run(main_idx);
 }

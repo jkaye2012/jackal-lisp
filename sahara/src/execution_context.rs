@@ -1,9 +1,9 @@
-use crate::constant_pool::ConstantPool;
-use crate::function::{FunctionIndex, FunctionTable, InstructionPointer};
+use crate::function::{FunctionIndex, InstructionPointer};
 use crate::instruction::Opcode;
 use crate::local::{LocalAddress, LocalIndex, Locals};
 use crate::util::stack::Stack;
 use crate::value::Value;
+use crate::vm::GlobalContext;
 use crate::{Function, ValueType};
 
 struct Frame {
@@ -84,15 +84,8 @@ impl ExecutionContext {
         }
     }
 
-    // TODO: does this need to be moved into the VM somehow? How should execution contexts
-    // be interacted with?
-    pub fn run(
-        &mut self,
-        constants: &ConstantPool,
-        function_table: &FunctionTable,
-        entrypoint_index: FunctionIndex,
-    ) {
-        let entrypoint = function_table.get(entrypoint_index);
+    pub fn run(&mut self, global_context: &GlobalContext, entrypoint_index: FunctionIndex) {
+        let entrypoint = global_context.function_table().get(entrypoint_index);
         let mut frame = self.callstack.initialize(entrypoint);
         let mut func = entrypoint;
         while {
@@ -121,12 +114,12 @@ impl ExecutionContext {
                 }
                 Opcode::Call => {
                     let idx = inst.function_index();
-                    func = function_table.get(idx);
+                    func = global_context.function_table().get(idx);
                     frame = self.callstack.push(func);
                 }
                 Opcode::Return => {
                     frame = self.callstack.pop();
-                    func = function_table.get(frame.function);
+                    func = global_context.function_table().get(frame.function);
                 }
                 Opcode::Print => {
                     let val = self.data.pop();
@@ -163,7 +156,7 @@ impl ExecutionContext {
                     self.data.push(Value::Bool(inst.bool()));
                 }
                 Opcode::Const => {
-                    let value = constants.get(inst.into());
+                    let value = global_context.constant_pool().get(inst.into());
                     self.data.push(value);
                 }
             };
