@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct InstructionIndex(usize);
 
@@ -22,5 +24,11 @@ impl From<InstructionIndex> for usize {
 impl InstructionIndex {
     pub fn new(idx: usize) -> Self {
         InstructionIndex(idx & 0xFFFFFF)
+    }
+}
+
+impl Display for InstructionIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:#06x}", self.0)
     }
 }

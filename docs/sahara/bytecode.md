@@ -161,9 +161,10 @@ an index into the [global type definition table](./global-context.md#type-defini
 information about fields required to create an instance of the type; namely, the number of fields and the type of each
 field.
 
-Callers should ensure that a single value for each required field is pushed onto the data stack before `dt_create` is
-invoked. The instruction will pop a value off of the stack for each required field, expecting that fields have been
-pushed in reverse order relative to the type definition.
+Callers should ensure that a single value for each required field and a single local index is pushed onto the data stack
+before `dt_create` is invoked. The instruction will pop the local index off of the stack to determine the location at
+which the newly created type will be stored, then will pop values off of the stack for each required field, expecting
+that fields have been pushed in reverse order relative to the type definition.
 
 For example, consider the data type:
 
@@ -188,13 +189,14 @@ fields:
 ```
 
 To create the color cyan (`0x00FFFF`), the user would push the `blue` byte, then `green`, then `red`, followed by the
-create instruction. Assuming that the type definition for `Rgb` lies at index `4` of the type definition table, this
-creation would be represented by:
+create instruction. Assuming that the type definition for `Rgb` lies at index `4` of the type definition table and
+should be stored in local slot `0`, this creation would be represented by:
 
 ```
 imm_u8 0xFF
 imm_u8 0xFF
 imm_u8 0x00
+imm_u32 0X000000
 dt_create 0x4
 ```
 

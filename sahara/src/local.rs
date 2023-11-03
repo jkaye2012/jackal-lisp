@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::{
     util::index::InstructionIndex,
     value::{Value, ValueType},
+    TypeTable,
 };
 
 pub struct LocalSlots {
@@ -20,18 +21,18 @@ impl LocalSlots {
         }
     }
 
-    pub fn add_slot(&mut self, value_type: ValueType) {
+    pub fn add_slot(&mut self, type_table: &TypeTable, value_type: ValueType) {
         self.types.push(value_type);
         self.offsets.push(self.end);
-        self.end += value_type.size();
+        self.end += value_type.size(type_table);
     }
 
-    pub fn total_size(&self) -> usize {
-        self.types.iter().map(|v| v.size()).sum()
+    pub fn total_size(&self, type_table: &TypeTable) -> usize {
+        self.types.iter().map(|v| v.size(type_table)).sum()
     }
 
-    pub fn allocate(&self, addr: LocalAddress) -> LocalAddress {
-        LocalAddress(addr.0 + self.total_size())
+    pub fn allocate(&self, type_table: &TypeTable, addr: LocalAddress) -> LocalAddress {
+        LocalAddress(addr.0 + self.total_size(type_table))
     }
 
     pub fn slot_info(
@@ -101,17 +102,29 @@ impl Locals {
         }
     }
 
-    pub fn store_local(&mut self, addr: LocalAddress, value: Value) {
-        let sz = value.size();
+    pub fn store_local(
+        &mut self,
+        type_table: &TypeTable,
+        addr: LocalAddress,
+        value: Value,
+    ) -> LocalAddress {
+        let sz = value.size(type_table);
+        let end = addr.offset(sz);
         self.bytes.reserve(sz);
         if self.bytes.len() < self.bytes.capacity() {
             self.bytes.resize(self.bytes.capacity(), 0);
         }
-        let mem = &mut self.bytes[addr.0..addr.0 + sz];
+        let mem = &mut self.bytes[addr.0..end.0];
         value.into_slice(mem);
+        end
     }
 
-    pub fn read_local(&self, addr: LocalAddress, value_type: &ValueType) -> Value {
-        value_type.create_local(addr, &self.bytes[addr.0..addr.0 + value_type.size()])
+    pub fn read_local(
+        &self,
+        type_table: &TypeTable,
+        addr: LocalAddress,
+        value_type: &ValueType,
+    ) -> Value {
+        value_type.create_local(&self.bytes[addr.0..addr.0 + value_type.size(type_table)])
     }
 }

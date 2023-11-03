@@ -10,11 +10,11 @@ mod value;
 mod vm;
 
 pub use constant_pool::ConstantPool;
-pub use data_type::{TypeDefinition, TypeId, TypeIndex, TypeTable};
+pub use data_type::{Field, TypeDefinition, TypeId, TypeIndex, TypeTable};
 pub use execution_context::ExecutionContext;
 pub use function::{Function, FunctionId, FunctionIndex, FunctionTable};
 pub use instruction::Instruction;
 pub use local::LocalSlots;
-pub use module_registry::ModuleRegistry;
+pub use module_registry::{ModuleName, ModuleRegistry};
 pub use value::ValueType;
 pub use vm::VirtualMachine;

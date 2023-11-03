@@ -35,6 +35,12 @@ impl ConstantPool {
         self.constants[i]
     }
 
+    // TODO: these can be collapsed to accept arbitrary values
+
+    pub fn add_u8(&mut self, value: u8) -> ConstantIndex {
+        self.find_or_insert(Value::U8(value))
+    }
+
     pub fn add_u64(&mut self, value: u64) -> ConstantIndex {
         self.find_or_insert(Value::U64(value))
     }

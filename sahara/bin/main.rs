@@ -1,11 +1,13 @@
 use sahara::{
-    ConstantPool, ExecutionContext, FunctionId, FunctionIndex, FunctionTable, Instruction,
-    LocalSlots, ModuleRegistry, TypeTable, VirtualMachine,
+    ConstantPool, ExecutionContext, Field, FunctionId, FunctionIndex, FunctionTable, Instruction,
+    LocalSlots, ModuleName, ModuleRegistry, TypeDefinition, TypeId, TypeTable, ValueType,
+    VirtualMachine,
 };
 
 fn one_plus_one(
     pool: &mut ConstantPool,
-    table: &mut FunctionTable,
+    function_table: &mut FunctionTable,
+    type_table: &TypeTable,
     id: FunctionId,
 ) -> FunctionIndex {
     let instructions = vec![
@@ -18,8 +20,17 @@ fn one_plus_one(
         Instruction::ret(),
     ];
     let mut locals = LocalSlots::new();
-    locals.add_slot(sahara::ValueType::U64);
-    table.insert(id, instructions, locals)
+    locals.add_slot(type_table, sahara::ValueType::U64);
+    function_table.insert(id, instructions, locals)
+}
+
+fn mk_type(type_table: &mut TypeTable, module_name: &ModuleName) {
+    let type_id = TypeId::new(module_name, "TestType");
+    let mut type_defn = TypeDefinition::new(type_id.clone()); // TODO: don't force clone
+    type_defn.add_field(type_table, Field::new("red".to_string(), ValueType::U8));
+    type_defn.add_field(type_table, Field::new("green".to_string(), ValueType::U8));
+    type_defn.add_field(type_table, Field::new("blue".to_string(), ValueType::U8));
+    type_table.insert(type_id, type_defn);
 }
 
 fn main() {
@@ -27,10 +38,11 @@ fn main() {
     let module_name = modules.register("main".to_string());
     let context = ExecutionContext::new();
     let mut function_table = FunctionTable::new();
-    let mut type_table = TypeTable::new();
     let onepone = module_name.function_id("one_plus_one");
     let mut pool = ConstantPool::default();
-    let func_idx = one_plus_one(&mut pool, &mut function_table, onepone);
+    let mut type_table = TypeTable::new();
+    mk_type(&mut type_table, &module_name);
+    let func_idx = one_plus_one(&mut pool, &mut function_table, &type_table, onepone);
     let instructions = vec![
         Instruction::constant(pool.add_u64(200)),
         Instruction::local_store(),
@@ -41,10 +53,15 @@ fn main() {
         Instruction::mul(),
         Instruction::print(),
         Instruction::call(func_idx),
+        Instruction::constant(pool.add_u8(1)),
+        Instruction::constant(pool.add_u8(2)),
+        Instruction::constant(pool.add_u8(3)),
+        Instruction::data_type_create(1.into()),
         Instruction::halt(),
     ];
     let mut locals = LocalSlots::new();
-    locals.add_slot(sahara::ValueType::U64);
+    locals.add_slot(&type_table, sahara::ValueType::U64);
+    locals.add_slot(&type_table, sahara::ValueType::LocalData(0_usize.into()));
     let main = module_name.function_id("main");
     let main_idx = function_table.insert(main, instructions, locals);
     let mut vm = VirtualMachine::new(context, function_table, pool, type_table);

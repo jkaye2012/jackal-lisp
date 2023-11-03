@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, collections::HashMap};
+use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
 use crate::{module_registry::ModuleName, util::index::InstructionIndex, ValueType};
 
@@ -23,78 +23,98 @@ impl From<TypeIndex> for InstructionIndex {
     }
 }
 
+impl Display for TypeIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Field {
     name: String,
     value_type: ValueType,
-    type_index: Option<TypeIndex>,
 }
 
 impl Field {
-    pub fn primitive(name: String, value_type: ValueType) -> Self {
-        if !value_type.is_primitive() {
-            panic!(
-                "Attempted to create primitive field from non-primitive value: {}",
-                value_type
-            );
-        }
-
-        Field {
-            name,
-            value_type,
-            type_index: None,
-        }
+    pub fn new(name: String, value_type: ValueType) -> Self {
+        Field { name, value_type }
     }
 
-    pub fn data_type(name: String, value_type: ValueType, type_index: TypeIndex) -> Self {
-        if value_type.is_primitive() {
-            panic!(
-                "Attempted to create data type field from primitive value: {}",
-                value_type
-            );
-        }
-
-        Field {
-            name,
-            value_type,
-            type_index: Some(type_index),
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.value_type.size()
+    pub fn size(&self, type_table: &TypeTable) -> usize {
+        self.value_type.size(type_table)
     }
 }
 
 type FieldOffset = (Field, usize);
 
 pub struct TypeDefinition {
-    name: String,
+    name: TypeId,
     fields: Vec<FieldOffset>,
+    flattened_fields: Vec<FieldOffset>,
+}
+
+enum FieldCategory {
+    TopLevel,
+    SubField,
 }
 
 impl TypeDefinition {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: TypeId) -> Self {
         TypeDefinition {
             name,
             fields: Vec::new(),
+            flattened_fields: Vec::new(),
         }
     }
 
-    pub fn add_field(&mut self, field: Field) {
-        let offset = if let Some((prev_field, prev_offset)) = self.fields.last() {
-            prev_offset + prev_field.size()
+    pub fn add_field(&mut self, type_table: &TypeTable, field: Field) {
+        self.add_flattened_fields(type_table, field, FieldCategory::TopLevel);
+    }
+
+    fn add_flattened_fields(
+        &mut self,
+        type_table: &TypeTable,
+        field: Field,
+        category: FieldCategory,
+    ) {
+        let offset = if let Some((prev_field, prev_offset)) = self.flattened_fields.last() {
+            prev_offset + prev_field.size(type_table)
         } else {
             0
         };
-        self.fields.push((field, offset));
+
+        match field.value_type {
+            ValueType::LocalData(type_idx) => {
+                let subtype = type_table.get(type_idx);
+                for (subfield, _) in &subtype.fields {
+                    self.add_flattened_fields(
+                        type_table,
+                        subfield.clone(),
+                        FieldCategory::SubField,
+                    );
+                }
+            }
+            _ => self.flattened_fields.push((field.clone(), offset)),
+        }
+
+        if let FieldCategory::TopLevel = category {
+            self.fields.push((field, offset));
+        }
     }
 
-    pub fn total_size(&self) -> usize {
-        self.fields.iter().map(|(f, _)| f.size()).sum()
+    pub fn num_fields(&self) -> usize {
+        self.flattened_fields.len()
+    }
+
+    pub fn total_size(&self, type_table: &TypeTable) -> usize {
+        self.flattened_fields
+            .iter()
+            .map(|(f, _)| f.size(type_table))
+            .sum()
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TypeId {
     fq_name: String,
 }
@@ -143,5 +163,11 @@ impl TypeTable {
     pub fn get(&self, idx: TypeIndex) -> &TypeDefinition {
         let i: usize = idx.0.into();
         &self.types[i]
+    }
+}
+
+impl Default for TypeTable {
+    fn default() -> Self {
+        Self::new()
     }
 }

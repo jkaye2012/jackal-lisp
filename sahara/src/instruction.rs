@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     constant_pool::ConstantIndex, function::FunctionIndex, local::LocalIndex,
-    util::index::InstructionIndex,
+    util::index::InstructionIndex, TypeIndex,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -18,6 +18,7 @@ pub enum Opcode {
     Return,
     LocalStore,
     LocalRead,
+    DataTypeCreate,
     ImmI16 = 248,
     ImmI8 = 249,
     ImmU16 = 250,
@@ -46,6 +47,7 @@ impl From<u8> for Opcode {
             7 => Self::Return,
             8 => Self::LocalStore,
             9 => Self::LocalRead,
+            10 => Self::DataTypeCreate,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
             250 => Self::ImmU16,
@@ -71,6 +73,7 @@ impl Display for Opcode {
             Self::Return => write!(f, "return"),
             Self::LocalStore => write!(f, "local_store"),
             Self::LocalRead => write!(f, "local_read"),
+            Self::DataTypeCreate => write!(f, "dt_create"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
             Self::ImmU16 => write!(f, "imm_u16"),
@@ -165,6 +168,10 @@ impl Instruction {
         self.abc().into()
     }
 
+    pub fn type_index(&self) -> TypeIndex {
+        self.abc().into()
+    }
+
     pub fn u8(&self) -> u8 {
         self.a()
     }
@@ -232,6 +239,10 @@ impl Instruction {
     pub fn local_read(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::LocalRead, idx.into())
     }
+
+    pub fn data_type_create(idx: LocalIndex) -> Instruction {
+        Self::indexed(Opcode::DataTypeCreate, idx.into())
+    }
 }
 
 impl Display for Instruction {
@@ -247,6 +258,7 @@ impl Display for Instruction {
             Opcode::ImmChar => write!(f, " {}", self.char()),
             Opcode::ImmBool => write!(f, " {}", self.bool()),
             Opcode::Const => write!(f, " {}", self.abc()),
+            Opcode::DataTypeCreate => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add

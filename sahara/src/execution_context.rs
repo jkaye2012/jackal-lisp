@@ -4,7 +4,7 @@ use crate::local::{LocalAddress, LocalIndex, Locals};
 use crate::util::stack::Stack;
 use crate::value::Value;
 use crate::vm::GlobalContext;
-use crate::{Function, ValueType};
+use crate::{Function, TypeTable, ValueType};
 
 struct Frame {
     ip: InstructionPointer,
@@ -14,11 +14,11 @@ struct Frame {
 }
 
 impl Frame {
-    pub fn new(locals: LocalAddress, function: &Function) -> Self {
+    pub fn new(type_table: &TypeTable, locals: LocalAddress, function: &Function) -> Self {
         Frame {
             ip: InstructionPointer::new(),
             locals_begin: locals,
-            locals_end: function.local_slots().allocate(locals),
+            locals_end: function.local_slots().allocate(type_table, locals),
             function: function.index(),
         }
     }
@@ -39,15 +39,16 @@ impl Callstack {
         }
     }
 
-    pub fn initialize(&mut self, entrypoint: &Function) -> &mut Frame {
+    pub fn initialize(&mut self, type_table: &TypeTable, entrypoint: &Function) -> &mut Frame {
         self.frames
-            .push(Frame::new(LocalAddress::new(), entrypoint));
+            .push(Frame::new(type_table, LocalAddress::new(), entrypoint));
         self.frames.peek_mut()
     }
 
-    pub fn push(&mut self, func: &Function) -> &mut Frame {
+    pub fn push(&mut self, type_table: &TypeTable, func: &Function) -> &mut Frame {
         let current_frame = self.frames.peek();
-        self.frames.push(Frame::new(current_frame.locals_end, func));
+        self.frames
+            .push(Frame::new(type_table, current_frame.locals_end, func));
         self.frames.peek_mut()
     }
 
@@ -86,7 +87,9 @@ impl ExecutionContext {
 
     pub fn run(&mut self, global_context: &GlobalContext, entrypoint_index: FunctionIndex) {
         let entrypoint = global_context.function_table().get(entrypoint_index);
-        let mut frame = self.callstack.initialize(entrypoint);
+        let mut frame = self
+            .callstack
+            .initialize(global_context.type_table(), entrypoint);
         let mut func = entrypoint;
         while {
             let inst = func.next_instruction(&mut frame.ip);
@@ -115,7 +118,7 @@ impl ExecutionContext {
                 Opcode::Call => {
                     let idx = inst.function_index();
                     func = global_context.function_table().get(idx);
-                    frame = self.callstack.push(func);
+                    frame = self.callstack.push(global_context.type_table(), func);
                 }
                 Opcode::Return => {
                     frame = self.callstack.pop();
@@ -129,13 +132,27 @@ impl ExecutionContext {
                     let idx = inst.local_index();
                     let (_, addr) = frame.local_info(func, idx);
                     let value = self.data.pop();
-                    self.locals.store_local(addr, value);
+                    self.locals
+                        .store_local(global_context.type_table(), addr, value);
                 }
                 Opcode::LocalRead => {
                     let idx = inst.local_index();
                     let (value_type, addr) = frame.local_info(func, idx);
-                    let value = self.locals.read_local(addr, &value_type);
+                    let value =
+                        self.locals
+                            .read_local(global_context.type_table(), addr, &value_type);
                     self.data.push(value);
+                }
+                Opcode::DataTypeCreate => {
+                    let local_idx = inst.local_index();
+                    let (value_type, mut addr) = frame.local_info(func, local_idx);
+                    let type_definition = global_context.type_table().get(value_type.type_index());
+                    for _ in 0..type_definition.num_fields() {
+                        let value = self.data.pop();
+                        addr = self
+                            .locals
+                            .store_local(global_context.type_table(), addr, value);
+                    }
                 }
                 Opcode::ImmI16 => {
                     self.data.push(Value::I16(inst.i16()));
