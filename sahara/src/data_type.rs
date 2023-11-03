@@ -26,11 +26,38 @@ impl From<TypeIndex> for InstructionIndex {
 pub struct Field {
     name: String,
     value_type: ValueType,
+    type_index: Option<TypeIndex>,
 }
 
 impl Field {
-    pub fn new(name: String, value_type: ValueType) -> Self {
-        Field { name, value_type }
+    pub fn primitive(name: String, value_type: ValueType) -> Self {
+        if !value_type.is_primitive() {
+            panic!(
+                "Attempted to create primitive field from non-primitive value: {}",
+                value_type
+            );
+        }
+
+        Field {
+            name,
+            value_type,
+            type_index: None,
+        }
+    }
+
+    pub fn data_type(name: String, value_type: ValueType, type_index: TypeIndex) -> Self {
+        if value_type.is_primitive() {
+            panic!(
+                "Attempted to create data type field from primitive value: {}",
+                value_type
+            );
+        }
+
+        Field {
+            name,
+            value_type,
+            type_index: Some(type_index),
+        }
     }
 
     pub fn size(&self) -> usize {

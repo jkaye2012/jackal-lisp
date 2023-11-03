@@ -19,6 +19,26 @@ pub enum ValueType {
     LocalData(usize),
 }
 
+impl Display for ValueType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bool => write!(f, "Bool"),
+            Self::Char => write!(f, "Char"),
+            Self::U8 => write!(f, "U8"),
+            Self::U16 => write!(f, "U16"),
+            Self::U32 => write!(f, "U32"),
+            Self::U64 => write!(f, "U64"),
+            Self::I8 => write!(f, "I8"),
+            Self::I16 => write!(f, "I16"),
+            Self::I32 => write!(f, "I32"),
+            Self::I64 => write!(f, "I64"),
+            Self::F32 => write!(f, "F32"),
+            Self::F64 => write!(f, "F64"),
+            Self::LocalData(_) => write!(f, "LocalData"),
+        }
+    }
+}
+
 // To implement data types:
 // 1. type definitions
 // 2. global type definition table
@@ -44,6 +64,24 @@ impl ValueType {
             Self::F32 => 4,
             Self::F64 => 8,
             Self::LocalData(size) => *size,
+        }
+    }
+
+    pub fn is_primitive(&self) -> bool {
+        match self {
+            Self::Bool
+            | Self::Char
+            | Self::U8
+            | Self::U16
+            | Self::U32
+            | Self::U64
+            | Self::I8
+            | Self::I16
+            | Self::I32
+            | Self::I64
+            | Self::F32
+            | Self::F64 => true,
+            Self::LocalData(_) => false,
         }
     }
 
