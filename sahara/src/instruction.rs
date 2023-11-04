@@ -19,6 +19,7 @@ pub enum Opcode {
     LocalStore,
     LocalRead,
     DataTypeCreate,
+    // implement DataTypeReadField and DataTypeStoreField
     ImmI16 = 248,
     ImmI8 = 249,
     ImmU16 = 250,

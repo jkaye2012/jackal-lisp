@@ -31,7 +31,7 @@ For more information, see the [static memory](./static-memory.md) documentation.
 ## Heap
 
 The heap stores data that must persist beyond the scope of a single stack frame. Unlike most other virtual machines, a
-separate heap is allocated and managed per execution context, meaning that techniques like shared memory concurrency are
+separate heap is allocated and managed per execution context, meaning that techniques like shared memory parallelism are
 not possible within Sahara.
 
 Data that must be shared across execution contexts must be sent explicitly using specialized messages meant for this
@@ -40,22 +40,3 @@ a single context, any number of references can be made to the same data; because
 single operating system thread, there is no risk of data races.
 
 For more information see the [dynamic memory](./dynamic-memory.md) documentation.
-
-## Meta information
-
-Meta information is required metadata that Sahara programs and development tooling can use to inspect the structure of a
-program at compile time. Object models, function signatures, and condition details are all examples of the type of
-meta information that may be of interest to developers.
-
-## Debug information
-
-Debug information is optional metadata that development tooling can use to inspect the state of a Sahara program at
-run time. Debug information is not loaded by default. Debug information allows programs to be paused, queried, and even
-modified while they're running. It also allows the Sahara VM to automatically provide useful information like code
-coverage when instrumentation is enabled.
-
-There is also a runtime cost associated with debug information in order to provide dynamic debugging functionality, such
-as the ability to refer to objects on the heap and the data stack by their corresponding names in the source code.
-
-
-
