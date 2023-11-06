@@ -57,6 +57,9 @@ fn main() {
         Instruction::constant(pool.add_u8(2)),
         Instruction::constant(pool.add_u8(3)),
         Instruction::data_type_create(1.into()),
+        Instruction::extend(0_u32.into()),
+        Instruction::data_type_read_field(1.into()),
+        Instruction::print(),
         Instruction::halt(),
     ];
     let mut locals = LocalSlots::new();

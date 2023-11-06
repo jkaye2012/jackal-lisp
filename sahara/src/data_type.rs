@@ -1,6 +1,8 @@
 use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
-use crate::{module_registry::ModuleName, util::index::InstructionIndex, ValueType};
+use crate::{
+    local::LocalAddress, module_registry::ModuleName, util::index::InstructionIndex, ValueType,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct TypeIndex(InstructionIndex);
@@ -31,13 +33,16 @@ impl Display for TypeIndex {
 
 #[derive(Debug, Clone)]
 pub struct Field {
-    name: String,
+    _name: String,
     value_type: ValueType,
 }
 
 impl Field {
     pub fn new(name: String, value_type: ValueType) -> Self {
-        Field { name, value_type }
+        Field {
+            _name: name,
+            value_type,
+        }
     }
 
     pub fn size(&self, type_table: &TypeTable) -> usize {
@@ -48,7 +53,7 @@ impl Field {
 type FieldOffset = (Field, usize);
 
 pub struct TypeDefinition {
-    name: TypeId,
+    _name: TypeId,
     fields: Vec<FieldOffset>,
     flattened_fields: Vec<FieldOffset>,
 }
@@ -58,10 +63,12 @@ enum FieldCategory {
     SubField,
 }
 
+type ReadField = (ValueType, LocalAddress);
+
 impl TypeDefinition {
     pub fn new(name: TypeId) -> Self {
         TypeDefinition {
-            name,
+            _name: name,
             fields: Vec::new(),
             flattened_fields: Vec::new(),
         }
@@ -111,6 +118,11 @@ impl TypeDefinition {
             .iter()
             .map(|(f, _)| f.size(type_table))
             .sum()
+    }
+
+    pub fn read_field(&self, addr: LocalAddress, field_idx: u32) -> ReadField {
+        let (field, offset) = &self.flattened_fields[field_idx as usize];
+        (field.value_type, addr.offset(*offset))
     }
 }
 

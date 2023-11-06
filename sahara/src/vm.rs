@@ -23,7 +23,7 @@ impl VirtualMachine {
             context,
             function_table,
             constants,
-            type_table: type_table,
+            type_table,
         }
     }
 

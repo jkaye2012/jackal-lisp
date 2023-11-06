@@ -19,7 +19,8 @@ pub enum Opcode {
     LocalStore,
     LocalRead,
     DataTypeCreate,
-    // implement DataTypeReadField and DataTypeStoreField
+    DataTypeReadField,
+    Extend = 247,
     ImmI16 = 248,
     ImmI8 = 249,
     ImmU16 = 250,
@@ -49,6 +50,8 @@ impl From<u8> for Opcode {
             8 => Self::LocalStore,
             9 => Self::LocalRead,
             10 => Self::DataTypeCreate,
+            11 => Self::DataTypeReadField,
+            247 => Self::Extend,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
             250 => Self::ImmU16,
@@ -75,6 +78,8 @@ impl Display for Opcode {
             Self::LocalStore => write!(f, "local_store"),
             Self::LocalRead => write!(f, "local_read"),
             Self::DataTypeCreate => write!(f, "dt_create"),
+            Self::DataTypeReadField => write!(f, "dt_read_field"),
+            Self::Extend => write!(f, "extend"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
             Self::ImmU16 => write!(f, "imm_u16"),
@@ -201,6 +206,13 @@ impl Instruction {
         Self::indexed(Opcode::Const, idx.into())
     }
 
+    // TODO: value shouldn't really be an instruction index - it's just arbitrary data. This is being used
+    // right now because it enforces that only the lower 24 bits of the value are utilized, but this may
+    // be changing soon if I decide to reduce instruction size to 16 bits anyway
+    pub fn extend(value: InstructionIndex) -> Instruction {
+        Self::indexed(Opcode::Extend, value)
+    }
+
     pub fn add() -> Instruction {
         Self::nullary(Opcode::Add)
     }
@@ -244,6 +256,10 @@ impl Instruction {
     pub fn data_type_create(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::DataTypeCreate, idx.into())
     }
+
+    pub fn data_type_read_field(idx: LocalIndex) -> Instruction {
+        Self::indexed(Opcode::DataTypeReadField, idx.into())
+    }
 }
 
 impl Display for Instruction {
@@ -252,6 +268,7 @@ impl Display for Instruction {
         match self.op() {
             Opcode::Call => write!(f, " {}", self.abc()),
             Opcode::LocalRead => write!(f, " {}", self.abc()),
+            Opcode::Extend => write!(f, " {}", self.abc()),
             Opcode::ImmI16 => write!(f, " {}", self.i16()),
             Opcode::ImmI8 => write!(f, " {}", self.i8()),
             Opcode::ImmU16 => write!(f, " {}", self.u16()),
@@ -260,6 +277,7 @@ impl Display for Instruction {
             Opcode::ImmBool => write!(f, " {}", self.bool()),
             Opcode::Const => write!(f, " {}", self.abc()),
             Opcode::DataTypeCreate => write!(f, " {}", self.abc()),
+            Opcode::DataTypeReadField => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add

@@ -27,6 +27,8 @@ documentation](./execution-context.md).
 
 ## Concurrency
 
+Concurrency within a single execution context is supported via [coroutines](./coroutines.md).
+
 ## Automatic memory management
 
 Memory is automatically managed differently depending upon where the memory was allocated and how it is owned. All
@@ -34,4 +36,8 @@ dynamically allocated data in Sahara must be annotated with its corresponding ow
 More information on the supported heaps and ownership modes can be found in the [dynamic memory](./dynamic-memory.md)
 documentation.
 
-## Scheduling
+## Parallelism
+
+Parallelism in Sahara is managed by creation of multiple execution contexts that send messages between one another. The
+semantics of this system are documented in the section on [parallelsim](./parallelism.md), including how contexts can be
+created and scheduled and how messages can be passed.

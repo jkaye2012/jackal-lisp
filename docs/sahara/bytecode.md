@@ -108,6 +108,16 @@ panic.
 | imm_i8   | 249    | a: i8      |       | i8      | Load an 8 bit signed integer immediately onto the data stack   |
 | imm_i16  | 248    | ab: i16    |       | i16     | Load a 16 bit signed integer immediately onto the data stack   |
 
+### Instruction extension
+
+There are situations where 32 bits are not enough to encode all information required by an instruction. In these cases,
+the `extend` instruction can be used up to 7 times to "extend" an instruction with additional information. Extend
+instructions should immediately precede the instruction that they are meant to extend.
+
+| Name   | Opcode | Parameters | Stack | Returns | Description                                                           |
+|--------|--------|------------|-------|---------|-----------------------------------------------------------------------|
+| extend | 247    | arbitrary  |       |         | Extend a subsequent instruction with additional immediate information |
+
 ### Function invocation
 
 Functions can be invoked after they are registered in the [function table](./functions.md#function-table).
@@ -148,23 +158,22 @@ different. While this may be inconvenient for the user, any other implementation
 
 ### Interacting with data types
 
-| Name          | Opcode | Parameters | Stack           | Returns | Description                                                 |
-|---------------|--------|------------|-----------------|---------|-------------------------------------------------------------|
-| dt_create     | 10     | abc: tidx  | multiple values | value   | Create a [type instance](./data-types.md#type-instances)    |
-| dt_read_field | 11     | abc: didx  | value           | value   | Load the value of a data type's field onto the data stack   |
-| dt_set_field  | 12     | abc:didx   | value           | value   | Update the value of a data type's field from the data stack |
+| Name          | Opcode | Parameters                   | Stack           | Returns | Description                                                 |
+|---------------|--------|------------------------------|-----------------|---------|-------------------------------------------------------------|
+| dt_create     | 10     | abc: tidx                    | multiple values | value   | Create a [type instance](./data-types.md#type-instances)    |
+| dt_read_field | 11     | abc: lidx, ext: field offset |                 | value   | Load the value of a data type's field onto the data stack   |
+| dt_set_field  | 12     | abc: lidx, ext: field offset | value           | value   | Update the value of a data type's field from the data stack |
 
 #### dt_create
 
-The `dt_create` instruction warrants a more in-depth description. The instruction accepts a single immediate parameter,
-an index into the [global type definition table](./global-context.md#type-definitions). The type definition contains
-information about fields required to create an instance of the type; namely, the number of fields and the type of each
-field.
+The `dt_create` instruction warrants a more in-depth description. The instruction expects an extension so that it can
+accepts a single immediate parameter: a local slot index. The type definition (extracted from the local slot metadata)
+contains information about fields required to create an instance of the type; namely, the number of fields and the type
+of each field.
 
-Callers should ensure that a single value for each required field and a single local index is pushed onto the data stack
-before `dt_create` is invoked. The instruction will pop the local index off of the stack to determine the location at
-which the newly created type will be stored, then will pop values off of the stack for each required field, expecting
-that fields have been pushed in reverse order relative to the type definition.
+Callers should ensure that a single value for each required field is pushed onto the data stack before `dt_create` is
+invoked. The instruction will pop values off of the stack for each required field, expecting that fields have been
+pushed in reverse order relative to the type definition.
 
 For example, consider the data type:
 
@@ -189,16 +198,33 @@ fields:
 ```
 
 To create the color cyan (`0x00FFFF`), the user would push the `blue` byte, then `green`, then `red`, followed by the
-create instruction. Assuming that the type definition for `Rgb` lies at index `4` of the type definition table and
-should be stored in local slot `0`, this creation would be represented by:
+create instruction. Assuming that the type definition for `Rgb` should be stored in local slot `4`, this creation would
+be represented by:
 
 ```
 imm_u8 0xFF
 imm_u8 0xFF
 imm_u8 0x00
-imm_u32 0X000000
 dt_create 0x4
 ```
+
+#### dt_read_field and dt_set_field
+
+Reading and setting data type fields requires use of the [extend instruction](#instruction-extension) to provide two
+immediate parameters: the local slot index holding the data, and the field offset (relative to the local slot)
+containing the field that should be read or updated. The field offset can be retrieved from the type definition
+registered with the VM.
+
+Continuing with our previous example, to read the `green` field from the data that we created at slot index `4`, the
+user would issue the following instructions:
+
+```
+extend 0x2
+dt_read_field 0x4
+```
+
+This reads the third field (zero indexed) from the local in slot `4`, which is the value of `green`.
+
 
 ### IO operations
 

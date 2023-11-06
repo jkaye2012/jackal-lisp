@@ -4,7 +4,7 @@ use crate::local::{LocalAddress, LocalIndex, Locals};
 use crate::util::stack::Stack;
 use crate::value::Value;
 use crate::vm::GlobalContext;
-use crate::{Function, TypeTable, ValueType};
+use crate::{Function, Instruction, TypeTable, ValueType};
 
 struct Frame {
     ip: InstructionPointer,
@@ -67,6 +67,7 @@ struct Heap {}
 pub struct ExecutionContext {
     data: Stack<Value>,
     callstack: Callstack,
+    extensions: Stack<Instruction>,
     locals: Locals,
     _meta: MetaInformation,
     _heap: Heap,
@@ -78,6 +79,7 @@ impl ExecutionContext {
         Self {
             data: Stack::new(),
             callstack: Callstack::new(),
+            extensions: Stack::new(),
             locals: Locals::new(),
             _meta: MetaInformation {},
             _heap: Heap {},
@@ -153,6 +155,23 @@ impl ExecutionContext {
                             .locals
                             .store_local(global_context.type_table(), addr, value);
                     }
+                }
+                Opcode::DataTypeReadField => {
+                    let local_idx = inst.local_index();
+                    let (dt_value_type, dt_addr) = frame.local_info(func, local_idx);
+                    let type_definition =
+                        global_context.type_table().get(dt_value_type.type_index());
+                    let field_idx = self.extensions.pop().abc();
+                    let (field_type, field_addr) = type_definition.read_field(dt_addr, field_idx);
+                    let value = self.locals.read_local(
+                        global_context.type_table(),
+                        field_addr,
+                        &field_type,
+                    );
+                    self.data.push(value);
+                }
+                Opcode::Extend => {
+                    self.extensions.push(inst);
                 }
                 Opcode::ImmI16 => {
                     self.data.push(Value::I16(inst.i16()));

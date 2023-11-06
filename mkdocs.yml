@@ -43,6 +43,8 @@ nav:
       - sahara/effects.md
       - sahara/static-memory.md
       - sahara/dynamic-memory.md
+      - sahara/coroutines.md
+      - sahara/parallelism.md
       - sahara/bytecode.md
       - sahara/debug.md
       - sahara/metaprogramming.md
