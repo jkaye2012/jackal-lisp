@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+// TODO: macros for index newtypes to reduce duplication?
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct InstructionIndex(usize);
 

@@ -162,7 +162,8 @@ impl ExecutionContext {
                     let type_definition =
                         global_context.type_table().get(dt_value_type.type_index());
                     let field_idx = self.extensions.pop().abc();
-                    let (field_type, field_addr) = type_definition.read_field(dt_addr, field_idx);
+                    let (field_type, field_addr) =
+                        type_definition.read_field(dt_addr, field_idx as usize);
                     let value = self.locals.read_local(
                         global_context.type_table(),
                         field_addr,
