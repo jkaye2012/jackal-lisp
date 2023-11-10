@@ -61,7 +61,7 @@ enum FieldCategory {
     SubField,
 }
 
-type ReadField = (ValueType, LocalAddress);
+type ReadField = (ValueType, LocalAddress); // TODO: rename, used for set and read
 
 impl TypeDefinition {
     pub fn new(name: TypeId) -> Self {

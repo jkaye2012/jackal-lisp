@@ -20,6 +20,7 @@ pub enum Opcode {
     LocalRead,
     DataTypeCreate,
     DataTypeReadField,
+    DataTypeSetField,
     Extend = 247,
     ImmI16 = 248,
     ImmI8 = 249,
@@ -51,6 +52,7 @@ impl From<u8> for Opcode {
             9 => Self::LocalRead,
             10 => Self::DataTypeCreate,
             11 => Self::DataTypeReadField,
+            12 => Self::DataTypeSetField,
             247 => Self::Extend,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
@@ -79,6 +81,7 @@ impl Display for Opcode {
             Self::LocalRead => write!(f, "local_read"),
             Self::DataTypeCreate => write!(f, "dt_create"),
             Self::DataTypeReadField => write!(f, "dt_read_field"),
+            Self::DataTypeSetField => write!(f, "dt_set_field"),
             Self::Extend => write!(f, "extend"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
@@ -260,6 +263,10 @@ impl Instruction {
     pub fn data_type_read_field(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::DataTypeReadField, idx.into())
     }
+
+    pub fn data_type_set_field(idx: LocalIndex) -> Instruction {
+        Self::indexed(Opcode::DataTypeSetField, idx.into())
+    }
 }
 
 impl Display for Instruction {
@@ -278,6 +285,7 @@ impl Display for Instruction {
             Opcode::Const => write!(f, " {}", self.abc()),
             Opcode::DataTypeCreate => write!(f, " {}", self.abc()),
             Opcode::DataTypeReadField => write!(f, " {}", self.abc()),
+            Opcode::DataTypeSetField => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add

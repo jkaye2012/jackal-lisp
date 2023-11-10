@@ -171,6 +171,20 @@ impl ExecutionContext {
                     );
                     self.data.push(value);
                 }
+                Opcode::DataTypeSetField => {
+                    // TODO: share logic with read
+                    let local_idx = inst.local_index();
+                    let (dt_value_type, dt_addr) = frame.local_info(func, local_idx);
+                    let type_definition =
+                        global_context.type_table().get(dt_value_type.type_index());
+                    let field_idx = self.extensions.pop().abc();
+                    let value = self.data.pop();
+                    let (field_type, field_addr) =
+                        type_definition.read_field(dt_addr, field_idx as usize);
+                    assert!(field_type == value.value_type());
+                    self.locals
+                        .store_local(global_context.type_table(), field_addr, value);
+                }
                 Opcode::Extend => {
                     self.extensions.push(inst);
                 }
