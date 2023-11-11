@@ -163,7 +163,7 @@ impl ExecutionContext {
                         global_context.type_table().get(dt_value_type.type_index());
                     let field_idx = self.extensions.pop().abc();
                     let (field_type, field_addr) =
-                        type_definition.read_field(dt_addr, field_idx as usize);
+                        type_definition.field_address(dt_addr, field_idx as usize);
                     let value = self.locals.read_local(
                         global_context.type_table(),
                         field_addr,
@@ -172,7 +172,6 @@ impl ExecutionContext {
                     self.data.push(value);
                 }
                 Opcode::DataTypeSetField => {
-                    // TODO: share logic with read
                     let local_idx = inst.local_index();
                     let (dt_value_type, dt_addr) = frame.local_info(func, local_idx);
                     let type_definition =
@@ -180,7 +179,7 @@ impl ExecutionContext {
                     let field_idx = self.extensions.pop().abc();
                     let value = self.data.pop();
                     let (field_type, field_addr) =
-                        type_definition.read_field(dt_addr, field_idx as usize);
+                        type_definition.field_address(dt_addr, field_idx as usize);
                     assert!(field_type == value.value_type());
                     self.locals
                         .store_local(global_context.type_table(), field_addr, value);

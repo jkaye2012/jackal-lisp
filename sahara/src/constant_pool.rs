@@ -20,7 +20,7 @@ pub struct ConstantPool {
 }
 
 impl ConstantPool {
-    fn find_or_insert(&mut self, value: Value) -> ConstantIndex {
+    pub fn add(&mut self, value: Value) -> ConstantIndex {
         if let Some(idx) = self.constants.iter().position(|v| v == &value) {
             ConstantIndex(idx.into())
         } else {
@@ -33,15 +33,5 @@ impl ConstantPool {
     pub fn get(&self, index: InstructionIndex) -> Value {
         let i: usize = index.into();
         self.constants[i]
-    }
-
-    // TODO: these can be collapsed to accept arbitrary values
-
-    pub fn add_u8(&mut self, value: u8) -> ConstantIndex {
-        self.find_or_insert(Value::U8(value))
-    }
-
-    pub fn add_u64(&mut self, value: u64) -> ConstantIndex {
-        self.find_or_insert(Value::U64(value))
     }
 }

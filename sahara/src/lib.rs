@@ -16,5 +16,5 @@ pub use function::{Function, FunctionId, FunctionIndex, FunctionTable};
 pub use instruction::Instruction;
 pub use local::LocalSlots;
 pub use module_registry::{ModuleName, ModuleRegistry};
-pub use value::ValueType;
+pub use value::{Value, ValueType};
 pub use vm::VirtualMachine;

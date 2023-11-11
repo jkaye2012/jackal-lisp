@@ -61,7 +61,7 @@ enum FieldCategory {
     SubField,
 }
 
-type ReadField = (ValueType, LocalAddress); // TODO: rename, used for set and read
+type FieldAddress = (ValueType, LocalAddress);
 
 impl TypeDefinition {
     pub fn new(name: TypeId) -> Self {
@@ -127,7 +127,7 @@ impl TypeDefinition {
     }
 
     // TODO: should field index be an instruction index?
-    pub fn read_field(&self, addr: LocalAddress, field_idx: usize) -> ReadField {
+    pub fn field_address(&self, addr: LocalAddress, field_idx: usize) -> FieldAddress {
         let (field, offset) = &self.flattened_fields[field_idx];
         (field.value_type, addr.offset(*offset))
     }
@@ -173,10 +173,9 @@ impl TypeTable {
         }
     }
 
-    // TODO: read id from definition instead of passing
-    pub fn insert(&mut self, id: TypeId, definition: TypeDefinition) -> TypeIndex {
+    pub fn insert(&mut self, definition: TypeDefinition) -> TypeIndex {
         let idx: TypeIndex = self.types.len().into();
-        self.indices.insert(id, idx);
+        self.indices.insert(definition.name.clone(), idx);
         self.types.push(definition);
         idx
     }
@@ -234,7 +233,7 @@ mod tests {
         rgb.add_field(&type_table, Field::new("red".to_string(), ValueType::U8));
         rgb.add_field(&type_table, Field::new("green".to_string(), ValueType::U8));
         rgb.add_field(&type_table, Field::new("blue".to_string(), ValueType::U8));
-        let rgb_index = type_table.insert(rgb.name.clone(), rgb);
+        let rgb_index = type_table.insert(rgb);
 
         let mut type_defn = create_type_definition("TestType");
         type_defn.add_field(

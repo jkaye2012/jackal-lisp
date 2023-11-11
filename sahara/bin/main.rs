@@ -1,6 +1,6 @@
 use sahara::{
     ConstantPool, ExecutionContext, Field, FunctionId, FunctionIndex, FunctionTable, Instruction,
-    LocalSlots, ModuleName, ModuleRegistry, TypeDefinition, TypeId, TypeTable, ValueType,
+    LocalSlots, ModuleName, ModuleRegistry, TypeDefinition, TypeId, TypeTable, Value, ValueType,
     VirtualMachine,
 };
 
@@ -11,10 +11,10 @@ fn one_plus_one(
     id: FunctionId,
 ) -> FunctionIndex {
     let instructions = vec![
-        Instruction::constant(pool.add_u64(100)),
+        Instruction::constant(pool.add(Value::U64(100))),
         Instruction::local_store(),
         Instruction::local_read(0.into()),
-        Instruction::constant(pool.add_u64(1)),
+        Instruction::constant(pool.add(Value::U64(1))),
         Instruction::add(),
         Instruction::print(),
         Instruction::ret(),
@@ -26,11 +26,11 @@ fn one_plus_one(
 
 fn mk_type(type_table: &mut TypeTable, module_name: &ModuleName) {
     let type_id = TypeId::new(module_name, "TestType");
-    let mut type_defn = TypeDefinition::new(type_id.clone()); // TODO: don't force clone
+    let mut type_defn = TypeDefinition::new(type_id);
     type_defn.add_field(type_table, Field::new("red".to_string(), ValueType::U8));
     type_defn.add_field(type_table, Field::new("green".to_string(), ValueType::U8));
     type_defn.add_field(type_table, Field::new("blue".to_string(), ValueType::U8));
-    type_table.insert(type_id, type_defn);
+    type_table.insert(type_defn);
 }
 
 fn main() {
@@ -44,20 +44,20 @@ fn main() {
     mk_type(&mut type_table, &module_name);
     let func_idx = one_plus_one(&mut pool, &mut function_table, &type_table, onepone);
     let instructions = vec![
-        Instruction::constant(pool.add_u64(200)),
+        Instruction::constant(pool.add(Value::U64(200))),
         Instruction::local_store(),
-        Instruction::constant(pool.add_u64(2)),
-        Instruction::constant(pool.add_u64(2)),
+        Instruction::constant(pool.add(Value::U64(2))),
+        Instruction::constant(pool.add(Value::U64(2))),
         Instruction::add(),
-        Instruction::constant(pool.add_u64(3)),
+        Instruction::constant(pool.add(Value::U64(3))),
         Instruction::mul(),
         Instruction::print(),
         Instruction::call(func_idx),
-        Instruction::constant(pool.add_u8(1)),
-        Instruction::constant(pool.add_u8(2)),
-        Instruction::constant(pool.add_u8(3)),
+        Instruction::constant(pool.add(Value::U8(1))),
+        Instruction::constant(pool.add(Value::U8(2))),
+        Instruction::constant(pool.add(Value::U8(3))),
         Instruction::data_type_create(1.into()),
-        Instruction::constant(pool.add_u8(4)),
+        Instruction::constant(pool.add(Value::U8(4))),
         Instruction::extend(1_u32.into()),
         Instruction::data_type_set_field(1.into()),
         Instruction::extend(0_u32.into()),
