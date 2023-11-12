@@ -1,6 +1,7 @@
-use crate::function::{FunctionIndex, InstructionPointer};
+use crate::function::InstructionPointer;
 use crate::instruction::Opcode;
-use crate::local::{LocalAddress, LocalIndex, Locals};
+use crate::local::{LocalAddress, Locals};
+use crate::util::index::{FunctionIndex, LocalIndex};
 use crate::util::stack::Stack;
 use crate::value::Value;
 use crate::vm::GlobalContext;
@@ -183,6 +184,16 @@ impl ExecutionContext {
                     assert!(field_type == value.value_type());
                     self.locals
                         .store_local(global_context.type_table(), field_addr, value);
+                }
+                Opcode::AllocateUnique => {
+                    let type_idx = inst.type_index();
+                    let type_definition = global_context.type_table().get(type_idx);
+                    for _ in 0..type_definition.num_fields() {
+                        let value = self.data.pop();
+                        // addr = self
+                        //     .locals
+                        //     .store_local(global_context.type_table(), addr, value);
+                    }
                 }
                 Opcode::Extend => {
                     self.extensions.push(inst);

@@ -1,7 +1,7 @@
 use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
 use crate::{
-    local::LocalSlots, module_registry::ModuleName, util::index::InstructionIndex, Instruction,
+    local::LocalSlots, module_registry::ModuleName, util::index::FunctionIndex, Instruction,
 };
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -97,27 +97,6 @@ pub struct FunctionTable {
     indices: HashMap<FunctionId, usize>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct FunctionIndex(InstructionIndex);
-
-impl From<u32> for FunctionIndex {
-    fn from(value: u32) -> Self {
-        FunctionIndex(InstructionIndex::new(value as usize))
-    }
-}
-
-impl From<usize> for FunctionIndex {
-    fn from(value: usize) -> Self {
-        FunctionIndex(InstructionIndex::new(value))
-    }
-}
-
-impl From<FunctionIndex> for InstructionIndex {
-    fn from(value: FunctionIndex) -> Self {
-        value.0
-    }
-}
-
 impl FunctionTable {
     pub fn new() -> Self {
         FunctionTable {
@@ -145,14 +124,14 @@ impl FunctionTable {
 
     pub fn address_of(&self, fq_name: &str) -> FunctionIndex {
         if let Some(idx) = self.indices.get(fq_name) {
-            FunctionIndex((*idx).into())
+            (*idx).into()
         } else {
             panic!("Requested unknown function {}", fq_name);
         }
     }
 
     pub fn get(&self, index: FunctionIndex) -> &Function {
-        let idx: usize = index.0.into();
+        let idx: usize = index.into();
         &self.functions[idx]
     }
 }

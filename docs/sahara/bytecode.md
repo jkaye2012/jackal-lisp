@@ -233,3 +233,10 @@ IO operations allow Sahara to interact with the "external" world.
 | Name  | Opcode | Parameters | Stack | Returns | Description                                             |
 |-------|--------|------------|-------|---------|---------------------------------------------------------|
 | print | 5      |            | value |         | Output the value on the top of the data stack to stdout |
+
+
+### Dynamic memory allocation
+
+| Name    | Opcode | Parameters | Stack           | Returns | Description                                                  |
+|---------|--------|------------|-----------------|---------|--------------------------------------------------------------|
+| alloc_u | 13     | abc: tidx  | multiple values | value   | Dynamically allocate memory for a type with unique ownership |

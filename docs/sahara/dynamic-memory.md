@@ -21,8 +21,8 @@ this heap is impossible by managing the data's lifetime using only its ownership
 
 Three different modes of ownership are supported:
 
-* `Unique` ownership means that the lifetime of the data is managed by a single unique owner. This is by far the most
-  common ownership mode in well-constructed programs
+* `Unique` ownership means that the lifetime of the data is managed by a single unique owner. This should be by far the
+  most common ownership mode in well-constructed programs
 * `Shared` ownership means that the lifetime of the data is managed by two or more owners, including the possibility of
   a dynamic number of owners. This ownership mode should be rare, as multiple ownership is not common in
   well-constructed programs. Due to its dynamic nature, use of shared ownership requires runtime reference counting

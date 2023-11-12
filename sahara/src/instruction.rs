@@ -1,9 +1,6 @@
 use std::fmt::Display;
 
-use crate::{
-    constant_pool::ConstantIndex, function::FunctionIndex, local::LocalIndex,
-    util::index::InstructionIndex, TypeIndex,
-};
+use crate::util::index::{ConstantIndex, FunctionIndex, InstructionIndex, LocalIndex, TypeIndex};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
@@ -21,6 +18,10 @@ pub enum Opcode {
     DataTypeCreate,
     DataTypeReadField,
     DataTypeSetField,
+    AllocateUnique,
+    // TODO: implement Drop operation; only way to get heap-allocated (unique or shared) memory off of the data
+    // stack is either to move it into an owner or drop it. Local frames can automatically drop anything moved
+    // into them, while rvalues are forced to be dropped immediately if they are not being stored
     Extend = 247,
     ImmI16 = 248,
     ImmI8 = 249,
@@ -53,6 +54,7 @@ impl From<u8> for Opcode {
             10 => Self::DataTypeCreate,
             11 => Self::DataTypeReadField,
             12 => Self::DataTypeSetField,
+            13 => Self::AllocateUnique,
             247 => Self::Extend,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
@@ -82,6 +84,7 @@ impl Display for Opcode {
             Self::DataTypeCreate => write!(f, "dt_create"),
             Self::DataTypeReadField => write!(f, "dt_read_field"),
             Self::DataTypeSetField => write!(f, "dt_set_field"),
+            Self::AllocateUnique => write!(f, "alloc_u"),
             Self::Extend => write!(f, "extend"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
@@ -101,7 +104,7 @@ pub struct Instruction {
 
 impl From<Instruction> for InstructionIndex {
     fn from(value: Instruction) -> Self {
-        InstructionIndex::new((value.bytecode & 0xFFFFFF) as usize)
+        InstructionIndex::new(value.bytecode)
     }
 }
 
@@ -267,6 +270,10 @@ impl Instruction {
     pub fn data_type_set_field(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::DataTypeSetField, idx.into())
     }
+
+    pub fn allocate_unique(idx: TypeIndex) -> Instruction {
+        Self::indexed(Opcode::AllocateUnique, idx.into())
+    }
 }
 
 impl Display for Instruction {
@@ -286,6 +293,7 @@ impl Display for Instruction {
             Opcode::DataTypeCreate => write!(f, " {}", self.abc()),
             Opcode::DataTypeReadField => write!(f, " {}", self.abc()),
             Opcode::DataTypeSetField => write!(f, " {}", self.abc()),
+            Opcode::AllocateUnique => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add

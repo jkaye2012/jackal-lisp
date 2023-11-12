@@ -1,8 +1,6 @@
 use crate::{
-    data_type::TypeTable,
-    execution_context::ExecutionContext,
-    function::{FunctionIndex, FunctionTable},
-    ConstantPool,
+    data_type::TypeTable, execution_context::ExecutionContext, function::FunctionTable,
+    util::index::FunctionIndex, ConstantPool,
 };
 
 pub struct VirtualMachine {

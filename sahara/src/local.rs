@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    util::index::InstructionIndex,
+    util::index::LocalIndex,
     value::{Value, ValueType},
     TypeTable,
 };
@@ -71,28 +71,8 @@ impl LocalAddress {
     }
 }
 
-pub struct LocalIndex(InstructionIndex);
-
-impl From<LocalIndex> for InstructionIndex {
-    fn from(value: LocalIndex) -> Self {
-        value.0
-    }
-}
-
-impl From<LocalIndex> for usize {
-    fn from(value: LocalIndex) -> Self {
-        value.0.into()
-    }
-}
-
-impl From<u32> for LocalIndex {
-    fn from(value: u32) -> Self {
-        LocalIndex(InstructionIndex::new(value as usize))
-    }
-}
-
 pub struct Locals {
-    bytes: Vec<u8>,
+    bytes: Vec<u8>, // TODO: should be able to configured static local memory if desired
 }
 
 impl Locals {

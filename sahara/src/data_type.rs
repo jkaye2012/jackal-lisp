@@ -1,35 +1,6 @@
-use std::{borrow::Borrow, collections::HashMap, fmt::Display};
+use std::{borrow::Borrow, collections::HashMap};
 
-use crate::{
-    local::LocalAddress, module_registry::ModuleName, util::index::InstructionIndex, ValueType,
-};
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct TypeIndex(InstructionIndex);
-
-impl From<u32> for TypeIndex {
-    fn from(value: u32) -> Self {
-        TypeIndex(InstructionIndex::new(value as usize))
-    }
-}
-
-impl From<usize> for TypeIndex {
-    fn from(value: usize) -> Self {
-        TypeIndex(InstructionIndex::new(value))
-    }
-}
-
-impl From<TypeIndex> for InstructionIndex {
-    fn from(value: TypeIndex) -> Self {
-        value.0
-    }
-}
-
-impl Display for TypeIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
+use crate::{local::LocalAddress, module_registry::ModuleName, util::index::TypeIndex, ValueType};
 
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -189,7 +160,7 @@ impl TypeTable {
     }
 
     pub fn get(&self, idx: TypeIndex) -> &TypeDefinition {
-        let i: usize = idx.0.into();
+        let i: usize = idx.into();
         &self.types[i]
     }
 }

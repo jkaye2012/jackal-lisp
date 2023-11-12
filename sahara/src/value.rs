@@ -1,6 +1,6 @@
 use std::{fmt::Display, ops};
 
-use crate::{local::LocalAddress, TypeIndex, TypeTable};
+use crate::{heap::HeapIndex, local::LocalAddress, util::index::TypeIndex, TypeTable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueType {
@@ -17,6 +17,7 @@ pub enum ValueType {
     F32,
     F64,
     LocalData(TypeIndex),
+    HeapUnique,
 }
 
 impl Display for ValueType {
@@ -35,6 +36,7 @@ impl Display for ValueType {
             Self::F32 => write!(f, "F32"),
             Self::F64 => write!(f, "F64"),
             Self::LocalData(_) => write!(f, "LocalData"),
+            Self::HeapUnique => write!(f, "HeapData"),
         }
     }
 }
@@ -55,6 +57,7 @@ impl ValueType {
             Self::F32 => 4,
             Self::F64 => 8,
             Self::LocalData(type_index) => type_table.get(*type_index).total_size(type_table),
+            Self::HeapUnique => 8,
         }
     }
 
@@ -73,6 +76,7 @@ impl ValueType {
             | Self::F32
             | Self::F64 => true,
             Self::LocalData(_) => false,
+            Self::HeapUnique => false,
         }
     }
 
@@ -160,6 +164,7 @@ pub enum Value {
     F32(f32),
     F64(f64),
     LocalData(LocalAddress, TypeIndex),
+    HeapData(HeapIndex),
 }
 
 impl Display for Value {
@@ -178,6 +183,7 @@ impl Display for Value {
             Self::F32(val) => write!(f, "F32({})", val),
             Self::F64(val) => write!(f, "F64({})", val),
             Self::LocalData(addr, idx) => write!(f, "LocalData({}, {})", addr, idx),
+            Self::HeapData(idx) => write!(f, "HeapData({})", idx),
         }
     }
 }
@@ -206,6 +212,7 @@ impl Value {
             Self::F32(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::F64(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::LocalData(_, _) => panic!("local_store supports only statically sized values"),
+            Self::HeapData(idx) => mem.copy_from_slice(&idx.be_bytes()),
         }
     }
 
@@ -224,6 +231,7 @@ impl Value {
             Self::F32(_) => ValueType::F32,
             Self::F64(_) => ValueType::F64,
             Self::LocalData(_, size) => ValueType::LocalData(*size),
+            Self::HeapData(_) => ValueType::HeapUnique,
         }
     }
 
