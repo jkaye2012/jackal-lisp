@@ -18,10 +18,7 @@ pub enum Opcode {
     DataTypeCreate,
     DataTypeReadField,
     DataTypeSetField,
-    AllocateUnique,
-    // TODO: implement Drop operation; only way to get heap-allocated (unique or shared) memory off of the data
-    // stack is either to move it into an owner or drop it. Local frames can automatically drop anything moved
-    // into them, while rvalues are forced to be dropped immediately if they are not being stored
+    HeapAlloc,
     Extend = 247,
     ImmI16 = 248,
     ImmI8 = 249,
@@ -54,7 +51,7 @@ impl From<u8> for Opcode {
             10 => Self::DataTypeCreate,
             11 => Self::DataTypeReadField,
             12 => Self::DataTypeSetField,
-            13 => Self::AllocateUnique,
+            13 => Self::HeapAlloc,
             247 => Self::Extend,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
@@ -84,7 +81,7 @@ impl Display for Opcode {
             Self::DataTypeCreate => write!(f, "dt_create"),
             Self::DataTypeReadField => write!(f, "dt_read_field"),
             Self::DataTypeSetField => write!(f, "dt_set_field"),
-            Self::AllocateUnique => write!(f, "alloc_u"),
+            Self::HeapAlloc => write!(f, "heap_alloc"),
             Self::Extend => write!(f, "extend"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
@@ -271,8 +268,8 @@ impl Instruction {
         Self::indexed(Opcode::DataTypeSetField, idx.into())
     }
 
-    pub fn allocate_unique(idx: TypeIndex) -> Instruction {
-        Self::indexed(Opcode::AllocateUnique, idx.into())
+    pub fn heap_alloc(idx: TypeIndex) -> Instruction {
+        Self::indexed(Opcode::HeapAlloc, idx.into())
     }
 }
 
@@ -293,7 +290,7 @@ impl Display for Instruction {
             Opcode::DataTypeCreate => write!(f, " {}", self.abc()),
             Opcode::DataTypeReadField => write!(f, " {}", self.abc()),
             Opcode::DataTypeSetField => write!(f, " {}", self.abc()),
-            Opcode::AllocateUnique => write!(f, " {}", self.abc()),
+            Opcode::HeapAlloc => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add
@@ -319,7 +316,7 @@ mod tests {
     #[test]
     fn test_u32_to_instruction() {
         let instruction = Instruction { bytecode: 33686018 };
-        assert_eq!(instruction.op(), Opcode::Print);
+        assert_eq!(instruction.op(), Opcode::Sub);
         assert_eq!(instruction.a(), 2);
         assert_eq!(instruction.b(), 2);
         assert_eq!(instruction.c(), 2);

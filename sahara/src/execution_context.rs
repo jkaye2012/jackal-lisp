@@ -1,6 +1,7 @@
 use crate::function::InstructionPointer;
 use crate::instruction::Opcode;
-use crate::local::{LocalAddress, Locals};
+use crate::memory::DynamicMemory;
+use crate::memory::{Memory, Pointer, StaticMemory};
 use crate::util::index::{FunctionIndex, LocalIndex};
 use crate::util::stack::Stack;
 use crate::value::Value;
@@ -9,13 +10,13 @@ use crate::{Function, Instruction, TypeTable, ValueType};
 
 struct Frame {
     ip: InstructionPointer,
-    locals_begin: LocalAddress,
-    locals_end: LocalAddress,
+    locals_begin: Pointer,
+    locals_end: Pointer,
     function: FunctionIndex,
 }
 
 impl Frame {
-    pub fn new(type_table: &TypeTable, locals: LocalAddress, function: &Function) -> Self {
+    pub fn new(type_table: &TypeTable, locals: Pointer, function: &Function) -> Self {
         Frame {
             ip: InstructionPointer::new(),
             locals_begin: locals,
@@ -24,7 +25,7 @@ impl Frame {
         }
     }
 
-    pub fn local_info(&self, function: &Function, idx: LocalIndex) -> (ValueType, LocalAddress) {
+    pub fn local_info(&self, function: &Function, idx: LocalIndex) -> (ValueType, Pointer) {
         function.local_slots().slot_info(idx, self.locals_begin)
     }
 }
@@ -42,7 +43,7 @@ impl Callstack {
 
     pub fn initialize(&mut self, type_table: &TypeTable, entrypoint: &Function) -> &mut Frame {
         self.frames
-            .push(Frame::new(type_table, LocalAddress::new(), entrypoint));
+            .push(Frame::new(type_table, Pointer::default(), entrypoint));
         self.frames.peek_mut()
     }
 
@@ -63,27 +64,25 @@ struct MetaInformation {}
 
 struct DebugInformation {}
 
-struct Heap {}
-
-pub struct ExecutionContext {
+pub struct ExecutionContext<Heap: DynamicMemory> {
     data: Stack<Value>,
     callstack: Callstack,
     extensions: Stack<Instruction>,
-    locals: Locals,
+    locals: StaticMemory,
     _meta: MetaInformation,
     _heap: Heap,
     _debug: Option<DebugInformation>,
 }
 
-impl ExecutionContext {
+impl<Heap: DynamicMemory> ExecutionContext<Heap> {
     pub fn new() -> Self {
         Self {
             data: Stack::new(),
             callstack: Callstack::new(),
             extensions: Stack::new(),
-            locals: Locals::new(),
+            locals: Default::default(),
             _meta: MetaInformation {},
-            _heap: Heap {},
+            _heap: Heap::new(),
             _debug: None,
         }
     }
@@ -133,28 +132,25 @@ impl ExecutionContext {
                 }
                 Opcode::LocalStore => {
                     let idx = inst.local_index();
-                    let (_, addr) = frame.local_info(func, idx);
+                    let (_, ptr) = frame.local_info(func, idx);
                     let value = self.data.pop();
-                    self.locals
-                        .store_local(global_context.type_table(), addr, value);
+                    self.locals.store_value(ptr, value);
                 }
                 Opcode::LocalRead => {
                     let idx = inst.local_index();
-                    let (value_type, addr) = frame.local_info(func, idx);
+                    let (value_type, ptr) = frame.local_info(func, idx);
                     let value =
                         self.locals
-                            .read_local(global_context.type_table(), addr, &value_type);
+                            .read_value(global_context.type_table(), ptr, &value_type);
                     self.data.push(value);
                 }
                 Opcode::DataTypeCreate => {
                     let local_idx = inst.local_index();
-                    let (value_type, mut addr) = frame.local_info(func, local_idx);
+                    let (value_type, mut ptr) = frame.local_info(func, local_idx);
                     let type_definition = global_context.type_table().get(value_type.type_index());
                     for _ in 0..type_definition.num_fields() {
                         let value = self.data.pop();
-                        addr = self
-                            .locals
-                            .store_local(global_context.type_table(), addr, value);
+                        ptr = self.locals.store_value(ptr, value);
                     }
                 }
                 Opcode::DataTypeReadField => {
@@ -163,38 +159,36 @@ impl ExecutionContext {
                     let type_definition =
                         global_context.type_table().get(dt_value_type.type_index());
                     let field_idx = self.extensions.pop().abc();
-                    let (field_type, field_addr) =
-                        type_definition.field_address(dt_addr, field_idx as usize);
-                    let value = self.locals.read_local(
-                        global_context.type_table(),
-                        field_addr,
-                        &field_type,
-                    );
+                    let (field_type, field_ptr) =
+                        type_definition.field_pointer(dt_addr, field_idx as usize);
+                    let value =
+                        self.locals
+                            .read_value(global_context.type_table(), field_ptr, &field_type);
                     self.data.push(value);
                 }
                 Opcode::DataTypeSetField => {
                     let local_idx = inst.local_index();
-                    let (dt_value_type, dt_addr) = frame.local_info(func, local_idx);
+                    let (dt_value_type, dt_ptr) = frame.local_info(func, local_idx);
                     let type_definition =
                         global_context.type_table().get(dt_value_type.type_index());
                     let field_idx = self.extensions.pop().abc();
                     let value = self.data.pop();
-                    let (field_type, field_addr) =
-                        type_definition.field_address(dt_addr, field_idx as usize);
-                    assert!(field_type == value.value_type());
-                    self.locals
-                        .store_local(global_context.type_table(), field_addr, value);
+                    let (_, field_ptr) = type_definition.field_pointer(dt_ptr, field_idx as usize);
+                    self.locals.store_value(field_ptr, value);
                 }
-                Opcode::AllocateUnique => {
-                    let type_idx = inst.type_index();
-                    let type_definition = global_context.type_table().get(type_idx);
-                    for _ in 0..type_definition.num_fields() {
-                        let value = self.data.pop();
-                        // addr = self
-                        //     .locals
-                        //     .store_local(global_context.type_table(), addr, value);
-                    }
+                Opcode::HeapAlloc => {
+                    // expects the same inputs as DataTypeCreate, lift generically?
                 }
+                // Opcode::AllocateUnique => {
+                //     //     let type_idx = inst.type_index();
+                //     //     let type_definition = global_context.type_table().get(type_idx);
+                //     //     for _ in 0..type_definition.num_fields() {
+                //     //         let value = self.data.pop();
+                //     //         // addr = self
+                //     //         //     .locals
+                //     //         //     .store_local(global_context.type_table(), addr, value);
+                //     //     }
+                // }
                 Opcode::Extend => {
                     self.extensions.push(inst);
                 }
@@ -226,7 +220,7 @@ impl ExecutionContext {
     }
 }
 
-impl Default for ExecutionContext {
+impl<Heap: DynamicMemory> Default for ExecutionContext<Heap> {
     fn default() -> Self {
         Self::new()
     }

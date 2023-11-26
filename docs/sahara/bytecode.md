@@ -42,6 +42,8 @@ specification that follows, there are a number of different Value subsets that a
 * `value` refers to any type supported by Value
 * `numeric` refers to any of the numeric types supported by Value
     * `i8`, `i16`, `i32`, `i64`, `u8`, `u16`, `u32`, `u64`, `f32`, `f64`
+* `heap` refers to a dynamic heap allocation (a `u64` index into the context heap)
+* `ref` refers to a non-owning reference to a dynamic heap allocation
 
 ## Example
 
@@ -81,7 +83,6 @@ confusing:
 * `cidx`: `constant index`, an index into the global constant pool
 * `fidx`: `function index`, an index into the global function table
 * `tidx`: `type index`, an index into the global type definition table
-* `hidx`: `heap index`, a memory location in the current execution context's heap
 * `lidx`: `local index`, a relative offset into the current execution context's local storage
 * `didx`: `data index`, a relative offset into a data type's [field definition](./data-types.md#type-definitions)
 
@@ -219,7 +220,7 @@ Continuing with our previous example, to read the `green` field from the data th
 user would issue the following instructions:
 
 ```
-extend 0x2
+extend 0x1
 dt_read_field 0x4
 ```
 
@@ -234,9 +235,72 @@ IO operations allow Sahara to interact with the "external" world.
 |-------|--------|------------|-------|---------|---------------------------------------------------------|
 | print | 5      |            | value |         | Output the value on the top of the data stack to stdout |
 
+### Dynamic memory management
 
-### Dynamic memory allocation
+| Name            | Opcode | Parameters                           | Stack           | Returns | Description                                                                    |
+|-----------------|--------|--------------------------------------|-----------------|---------|--------------------------------------------------------------------------------|
+| heap_alloc      | 13     | abc: lidx                            | multiple values | heap    | Dynamically allocate memory for a type                                         |
+| heap_store      | 14     | abc: field offset                    | heap, value     | value   | Store a value into a dynamic allocation                                        |
+| heap_yield_down | 16     | abc: lidx                            |                 | heap    | Moves a dynamic allocation from the current stack frame to the next            |
+| heap_yield_up   | 17     | abc: lidx                            |                 | heap    | Moves a dynamic allocation from the current stack frame to the previous        |
+| heap_read       | 18     | abc: fidx                            | heap            | value   | Reads a value from a dynamic allocation                                        |
+| heap_swap       | 19     | abc: field offset, ext: field offset | heap, heap      | heap    | Swaps ownership of two dynamically owned allocations                           |
+| heap_move       | 20     | abc: field offset, ext: field offset | heap, heap      | heap    | Moves ownership of a dynamically owned allocation to another dynamic owner     |
+| heap_swap_local | 21     | abc: lidx, ext: field offset         | heap            | heap    | Swaps ownership of a dynamically owned allocation and a stack local            |
+| heap_give_local | 22     | abc: lidx, ext: field offset         | heap            | heap    | Moves ownership of an allocation from a stack local into another dynamic owner |
+| heap_take_local | 23     | abc: lidx, ext: field offset         | heap            | heap    | Moves ownership of an allocation from a dynamic owner into a stack local       |
 
-| Name    | Opcode | Parameters | Stack           | Returns | Description                                                  |
-|---------|--------|------------|-----------------|---------|--------------------------------------------------------------|
-| alloc_u | 13     | abc: tidx  | multiple values | value   | Dynamically allocate memory for a type with unique ownership |
+#### `heap_alloc`
+
+`heap_alloc` is the basic heap allocation function. The data stack should contain similar values as `dt_create` (one value
+for each field in the type referred to by `abc`). Allocated data is owned by the stack frame in which the allocation is
+performed; if the memory is not moved or shared, it will be deallocated when the stack frame is popped.
+
+Allocations created in this way must always be stored in a stack local. An [extended
+instruction](#instruction-extension) should be used to specify the local slot to which the allocation should be stored.
+
+#### `heap_store`
+
+`heap_store` places a value into a field within a heap allocation. The expects two values to exist
+on the data stack: the owning heap allocation and the value to store. The immediate parameter is the field index
+into the owning allocation that should be set with the value. Any currently owned allocation in the field
+index may be deallocated if there are no other active owners. The stored value is left on the stack following the
+operation.
+
+#### `heap_yield_down`
+
+`heap_yield_down` transfers dynamic allocation ownership from the current stack frame to the next. This moves ownership
+_down_ the stack (e.g., into the stack frame of the next called function).  The operation expects the allocation to be
+placed onto the data stack, then leaves it on the stack for consumption by a subsequent operation. An arbitrary number
+of allocations can be yielded down, but the operation following the yields must be a `call`.
+
+#### `heap_yield_up`
+
+`heap_yield_up` transfers dynamic allocation ownership from the current stack frame to the previous. This moves ownership
+_up_ the stack (e.g., into the stack frame after a `return`).  The operation expects the allocation to be
+placed onto the data stack, then leaves it on the stack for consumption by a subsequent operation. An arbitrary number
+of allocations can be yielded up, but the operation following the yields must be a `return`.
+
+#### `heap_read`
+
+`heap_read` reads a value from a field within a dynamic allocation. The allocation to read from should be on the data
+stack, while the immediate parameter denotes the field index to be read.
+
+#### `heap_swap`
+
+`heap_swap` exchanges the ownership of two dynamically owned allocations. The data stack should contain the two owning
+allocations. The field offset in `abc` corresponds to the first allocation on the stack, while the extended instruction
+contains the field offset to the second allocation on the stack. The first allocation on the stack is left on the data
+stack.
+
+#### `heap_move`
+
+#### `heap_swap_local`
+
+`heap_swap_local` exchanges the ownership of a dynamically owned allocation and an owned stack local. The data stack
+should contain the owning allocation, while the extended instruction contains the field offset into the allocation. The
+allocation that was previously owned by the stack local is left on the data stack.
+
+#### `heap_give_local`
+
+#### `heap_take_local`

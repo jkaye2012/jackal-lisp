@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::{local::LocalAddress, module_registry::ModuleName, util::index::TypeIndex, ValueType};
+use crate::{memory::Pointer, module_registry::ModuleName, util::index::TypeIndex, ValueType};
 
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -13,18 +13,18 @@ impl Field {
         Field { name, value_type }
     }
 
-    pub fn size(&self, type_table: &TypeTable) -> usize {
+    pub fn size(&self, type_table: &TypeTable) -> u32 {
         self.value_type.size(type_table)
     }
 }
 
-type FieldOffset = (Field, usize);
+type FieldOffset = (Field, u32);
 
 pub struct TypeDefinition {
     name: TypeId,
     fields: Vec<FieldOffset>,
     flattened_fields: Vec<FieldOffset>,
-    path_lookup: HashMap<String, usize>,
+    path_lookup: HashMap<String, u32>,
 }
 
 enum FieldCategory {
@@ -32,7 +32,7 @@ enum FieldCategory {
     SubField,
 }
 
-type FieldAddress = (ValueType, LocalAddress);
+type FieldPointer = (ValueType, Pointer);
 
 impl TypeDefinition {
     pub fn new(name: TypeId) -> Self {
@@ -75,8 +75,7 @@ impl TypeDefinition {
                 }
             }
             _ => {
-                self.path_lookup
-                    .insert(path.to_string(), self.flattened_fields.len());
+                self.path_lookup.insert(path.to_string(), self.num_fields());
                 self.flattened_fields.push((field.clone(), offset));
             }
         }
@@ -86,11 +85,14 @@ impl TypeDefinition {
         }
     }
 
-    pub fn num_fields(&self) -> usize {
-        self.flattened_fields.len()
+    pub fn num_fields(&self) -> u32 {
+        self.flattened_fields
+            .len()
+            .try_into()
+            .expect("data types may contain at most 2^31 fields")
     }
 
-    pub fn total_size(&self, type_table: &TypeTable) -> usize {
+    pub fn total_size(&self, type_table: &TypeTable) -> u32 {
         self.flattened_fields
             .iter()
             .map(|(f, _)| f.size(type_table))
@@ -98,18 +100,18 @@ impl TypeDefinition {
     }
 
     // TODO: should field index be an instruction index?
-    pub fn field_address(&self, addr: LocalAddress, field_idx: usize) -> FieldAddress {
+    pub fn field_pointer(&self, ptr: Pointer, field_idx: usize) -> FieldPointer {
         let (field, offset) = &self.flattened_fields[field_idx];
-        (field.value_type, addr.offset(*offset))
+        (field.value_type, ptr.offset(*offset))
     }
 
-    pub fn query(&self, path: &[&str]) -> Option<usize> {
+    pub fn query(&self, path: &[&str]) -> Option<u32> {
         let pathname = path.join(".");
         self.path_lookup.get(&pathname).copied()
     }
 
-    pub fn get(&self, field_idx: usize) -> &FieldOffset {
-        &self.flattened_fields[field_idx]
+    pub fn get(&self, field_idx: u32) -> &FieldOffset {
+        &self.flattened_fields[field_idx as usize]
     }
 }
 
@@ -162,6 +164,10 @@ impl TypeTable {
     pub fn get(&self, idx: TypeIndex) -> &TypeDefinition {
         let i: usize = idx.into();
         &self.types[i]
+    }
+
+    pub fn size(&self, idx: TypeIndex) -> u32 {
+        self.get(idx).total_size(self)
     }
 }
 

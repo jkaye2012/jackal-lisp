@@ -1,6 +1,6 @@
 use std::{fmt::Display, ops};
 
-use crate::{heap::HeapIndex, local::LocalAddress, util::index::TypeIndex, TypeTable};
+use crate::{memory::Pointer, util::index::TypeIndex, TypeTable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ValueType {
@@ -17,7 +17,7 @@ pub enum ValueType {
     F32,
     F64,
     LocalData(TypeIndex),
-    HeapUnique,
+    HeapData(TypeIndex),
 }
 
 impl Display for ValueType {
@@ -36,13 +36,13 @@ impl Display for ValueType {
             Self::F32 => write!(f, "F32"),
             Self::F64 => write!(f, "F64"),
             Self::LocalData(_) => write!(f, "LocalData"),
-            Self::HeapUnique => write!(f, "HeapData"),
+            Self::HeapData(_) => write!(f, "Heap"),
         }
     }
 }
 
 impl ValueType {
-    pub fn size(&self, type_table: &TypeTable) -> usize {
+    pub fn size(&self, type_table: &TypeTable) -> u32 {
         match self {
             Self::Bool => 1,
             Self::Char => 1,
@@ -57,7 +57,7 @@ impl ValueType {
             Self::F32 => 4,
             Self::F64 => 8,
             Self::LocalData(type_index) => type_table.get(*type_index).total_size(type_table),
-            Self::HeapUnique => 8,
+            Self::HeapData(_) => 8,
         }
     }
 
@@ -76,11 +76,11 @@ impl ValueType {
             | Self::F32
             | Self::F64 => true,
             Self::LocalData(_) => false,
-            Self::HeapUnique => false,
+            Self::HeapData(_) => false,
         }
     }
 
-    pub fn create_local(&self, bytes: &[u8]) -> Value {
+    pub fn create_value(&self, bytes: &[u8]) -> Value {
         match self {
             Self::Bool => {
                 let mem: [u8; 1] = bytes.try_into().expect("Invalid memory");
@@ -163,8 +163,7 @@ pub enum Value {
     I64(i64),
     F32(f32),
     F64(f64),
-    LocalData(LocalAddress, TypeIndex),
-    HeapData(HeapIndex),
+    HeapData(Pointer),
 }
 
 impl Display for Value {
@@ -182,7 +181,6 @@ impl Display for Value {
             Self::I64(val) => write!(f, "I64({})", val),
             Self::F32(val) => write!(f, "F32({})", val),
             Self::F64(val) => write!(f, "F64({})", val),
-            Self::LocalData(addr, idx) => write!(f, "LocalData({}, {})", addr, idx),
             Self::HeapData(idx) => write!(f, "HeapData({})", idx),
         }
     }
@@ -211,32 +209,26 @@ impl Value {
             Self::I64(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::F32(val) => mem.copy_from_slice(&val.to_be_bytes()),
             Self::F64(val) => mem.copy_from_slice(&val.to_be_bytes()),
-            Self::LocalData(_, _) => panic!("local_store supports only statically sized values"),
             Self::HeapData(idx) => mem.copy_from_slice(&idx.be_bytes()),
         }
     }
 
-    pub fn value_type(&self) -> ValueType {
+    pub fn size(&self) -> u32 {
         match self {
-            Self::Bool(_) => ValueType::Bool,
-            Self::Char(_) => ValueType::Char,
-            Self::U8(_) => ValueType::U8,
-            Self::U16(_) => ValueType::U16,
-            Self::U32(_) => ValueType::U32,
-            Self::U64(_) => ValueType::U64,
-            Self::I8(_) => ValueType::I8,
-            Self::I16(_) => ValueType::I16,
-            Self::I32(_) => ValueType::I32,
-            Self::I64(_) => ValueType::I64,
-            Self::F32(_) => ValueType::F32,
-            Self::F64(_) => ValueType::F64,
-            Self::LocalData(_, size) => ValueType::LocalData(*size),
-            Self::HeapData(_) => ValueType::HeapUnique,
+            Self::Bool(_) => 1,
+            Self::Char(_) => 1,
+            Self::U8(_) => 1,
+            Self::U16(_) => 2,
+            Self::U32(_) => 4,
+            Self::U64(_) => 8,
+            Self::I8(_) => 1,
+            Self::I16(_) => 2,
+            Self::I32(_) => 4,
+            Self::I64(_) => 8,
+            Self::F32(_) => 4,
+            Self::F64(_) => 8,
+            Self::HeapData(_) => 8,
         }
-    }
-
-    pub fn size(&self, type_table: &TypeTable) -> usize {
-        self.value_type().size(type_table)
     }
 
     fn u8(&self) -> u8 {

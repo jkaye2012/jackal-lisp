@@ -1,10 +1,10 @@
 use crate::{
-    data_type::TypeTable, execution_context::ExecutionContext, function::FunctionTable,
-    util::index::FunctionIndex, ConstantPool,
+    constant_pool::ConstantPool, data_type::TypeTable, execution_context::ExecutionContext,
+    function::FunctionTable, memory::ContextHeap, util::index::FunctionIndex,
 };
 
 pub struct VirtualMachine {
-    context: ExecutionContext,
+    context: ExecutionContext<ContextHeap>,
     function_table: FunctionTable,
     constants: ConstantPool,
     type_table: TypeTable,
@@ -12,7 +12,7 @@ pub struct VirtualMachine {
 
 impl VirtualMachine {
     pub fn new(
-        context: ExecutionContext,
+        context: ExecutionContext<ContextHeap>,
         function_table: FunctionTable,
         constants: ConstantPool,
         type_table: TypeTable,

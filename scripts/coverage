@@ -1,0 +1,6 @@
+#! /bin/bash
+# -*- mode: sh -*-
+
+cd "$DIRENV_DIR"
+cargo tarpaulin --out=html
+GTK_MODULES= open tarpaulin-report.html

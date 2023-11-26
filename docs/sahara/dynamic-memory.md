@@ -19,25 +19,12 @@ this heap is impossible by managing the data's lifetime using only its ownership
 
 ### Ownership
 
-Three different modes of ownership are supported:
-
-* `Unique` ownership means that the lifetime of the data is managed by a single unique owner. This should be by far the
-  most common ownership mode in well-constructed programs
-* `Shared` ownership means that the lifetime of the data is managed by two or more owners, including the possibility of
-  a dynamic number of owners. This ownership mode should be rare, as multiple ownership is not common in
-  well-constructed programs. Due to its dynamic nature, use of shared ownership requires runtime reference counting
-  (each time an owner is added or removed from the shared memory) resulting in a small performance impact to this
-  ownership mode
-* `Reference` ownership means that an owner needs access to the shared memory, but should not participate in the
-  memory's lifetime. This means that the memory's existence must be validated and maintained atomically each time that
-  the memory is accessed. Most of the time that shared ownership is being considered, unique ownership with multiple
-  reference owners is likely to be the better option
-
-Memory is automatically freed based on the (recursive) lifetime of its owner(s):
-
-* `Unique` memory is freed when its owner is freed
-* `Shared` memory is freed when _all_ of its shared owners are freed
-* `Reference` memory has no effect on when memory is freed as it does not participate in ownership semantics
+Ownership is handled via an optimized form of reference counting; a dynamic allocation is required to live at least as
+long as any other allocations or stack frames that reference it. Because heaps are allocated for each execution context,
+synchronization is not required, nor is reference counting of non-owning references. References passed as function
+arguments, for example, need only be reference counted if the reference is _stored_. This property means that Sahara's
+reference counting is lightweight - while it does have a run-time cost, the cost is generally a single `add` instruction
+inserted only when a long-lived reference is made to an object.
 
 ## The global heap
 

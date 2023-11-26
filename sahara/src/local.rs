@@ -1,15 +1,9 @@
-use std::fmt::Display;
-
-use crate::{
-    util::index::LocalIndex,
-    value::{Value, ValueType},
-    TypeTable,
-};
+use crate::{memory::Pointer, util::index::LocalIndex, value::ValueType, TypeTable};
 
 pub struct LocalSlots {
     types: Vec<ValueType>,
-    offsets: Vec<usize>,
-    end: usize,
+    offsets: Vec<u32>,
+    end: u32,
 }
 
 impl LocalSlots {
@@ -27,84 +21,23 @@ impl LocalSlots {
         self.end += value_type.size(type_table);
     }
 
-    pub fn total_size(&self, type_table: &TypeTable) -> usize {
+    pub fn total_size(&self, type_table: &TypeTable) -> u32 {
         self.types.iter().map(|v| v.size(type_table)).sum()
     }
 
-    pub fn allocate(&self, type_table: &TypeTable, addr: LocalAddress) -> LocalAddress {
-        LocalAddress(addr.0 + self.total_size(type_table))
+    pub fn allocate(&self, type_table: &TypeTable, ptr: Pointer) -> Pointer {
+        ptr.offset(self.total_size(type_table))
     }
 
-    pub fn slot_info(
-        &self,
-        slot_index: LocalIndex,
-        relative_to: LocalAddress,
-    ) -> (ValueType, LocalAddress) {
+    pub fn slot_info(&self, slot_index: LocalIndex, ptr: Pointer) -> (ValueType, Pointer) {
         let idx: usize = slot_index.into();
         let bytes = self.offsets[idx];
-        (self.types[idx], relative_to.offset(bytes))
+        (self.types[idx], ptr.offset(bytes))
     }
 }
 
 impl Default for LocalSlots {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
-pub struct LocalAddress(usize);
-
-impl Display for LocalAddress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl LocalAddress {
-    pub fn new() -> Self {
-        LocalAddress(0)
-    }
-
-    pub fn offset(&self, bytes: usize) -> LocalAddress {
-        LocalAddress(self.0 + bytes)
-    }
-}
-
-pub struct Locals {
-    bytes: Vec<u8>, // TODO: should be able to configured static local memory if desired
-}
-
-impl Locals {
-    pub fn new() -> Self {
-        Locals {
-            bytes: Vec::with_capacity(4000), // TODO: make configurable
-        }
-    }
-
-    pub fn store_local(
-        &mut self,
-        type_table: &TypeTable,
-        addr: LocalAddress,
-        value: Value,
-    ) -> LocalAddress {
-        let sz = value.size(type_table);
-        let end = addr.offset(sz);
-        self.bytes.reserve(sz);
-        if self.bytes.len() < self.bytes.capacity() {
-            self.bytes.resize(self.bytes.capacity(), 0);
-        }
-        let mem = &mut self.bytes[addr.0..end.0];
-        value.into_slice(mem);
-        end
-    }
-
-    pub fn read_local(
-        &self,
-        type_table: &TypeTable,
-        addr: LocalAddress,
-        value_type: &ValueType,
-    ) -> Value {
-        value_type.create_local(&self.bytes[addr.0..addr.0 + value_type.size(type_table)])
     }
 }
