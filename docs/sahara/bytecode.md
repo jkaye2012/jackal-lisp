@@ -226,7 +226,6 @@ dt_read_field 0x4
 
 This reads the third field (zero indexed) from the local in slot `4`, which is the value of `green`.
 
-
 ### IO operations
 
 IO operations allow Sahara to interact with the "external" world.
@@ -237,18 +236,34 @@ IO operations allow Sahara to interact with the "external" world.
 
 ### Dynamic memory management
 
-| Name            | Opcode | Parameters                           | Stack           | Returns | Description                                                                    |
-|-----------------|--------|--------------------------------------|-----------------|---------|--------------------------------------------------------------------------------|
-| heap_alloc      | 13     | abc: lidx                            | multiple values | heap    | Dynamically allocate memory for a type                                         |
-| heap_store      | 14     | abc: field offset                    | heap, value     | value   | Store a value into a dynamic allocation                                        |
-| heap_yield_down | 16     | abc: lidx                            |                 | heap    | Moves a dynamic allocation from the current stack frame to the next            |
-| heap_yield_up   | 17     | abc: lidx                            |                 | heap    | Moves a dynamic allocation from the current stack frame to the previous        |
-| heap_read       | 18     | abc: fidx                            | heap            | value   | Reads a value from a dynamic allocation                                        |
-| heap_swap       | 19     | abc: field offset, ext: field offset | heap, heap      | heap    | Swaps ownership of two dynamically owned allocations                           |
-| heap_move       | 20     | abc: field offset, ext: field offset | heap, heap      | heap    | Moves ownership of a dynamically owned allocation to another dynamic owner     |
-| heap_swap_local | 21     | abc: lidx, ext: field offset         | heap            | heap    | Swaps ownership of a dynamically owned allocation and a stack local            |
-| heap_give_local | 22     | abc: lidx, ext: field offset         | heap            | heap    | Moves ownership of an allocation from a stack local into another dynamic owner |
-| heap_take_local | 23     | abc: lidx, ext: field offset         | heap            | heap    | Moves ownership of an allocation from a dynamic owner into a stack local       |
+Automatic memory management is implemented using a simple reference counting mechanism. When an allocation is created, it must be stored in a stack local;
+this local slot is its sole referrer, and thus the allocation's reference count is initialized to 1.
+
+Reference counts are incremented whenever:
+
+1. An allocation is stored into a stack local
+2. An allocation is stored into a field of another allocation
+
+Reference counts are decremented whenever:
+
+1. A stack frame is popped containing one or more references to an allocation in its local slots
+2. An allocation is freed containing one or more references to an allocation in its fields
+
+Either of these situations can cause multiple decrements to occur at once.
+
+When an allocation's reference count reaches 0, its memory is freed and any other allocations that it refers to have their reference counts decremented as
+described above.
+
+### Circular references
+
+Currently, automatic memory management does not detect circular references and thus will leak memory unless one of the allocations is manually
+freed.
+
+| Name       | Opcode | Parameters        | Stack           | Returns | Description                             |
+|------------|--------|-------------------|-----------------|---------|-----------------------------------------|
+| heap_alloc | 13     | abc: lidx         | multiple values | heap    | Dynamically allocate memory for a type  |
+| heap_store | 14     | abc: field offset | heap, value     | value   | Store a value into a dynamic allocation |
+| heap_read  | 15     | abc: field offset | heap            | value   | Reads a value from a dynamic allocation |
 
 #### `heap_alloc`
 
@@ -267,40 +282,7 @@ into the owning allocation that should be set with the value. Any currently owne
 index may be deallocated if there are no other active owners. The stored value is left on the stack following the
 operation.
 
-#### `heap_yield_down`
-
-`heap_yield_down` transfers dynamic allocation ownership from the current stack frame to the next. This moves ownership
-_down_ the stack (e.g., into the stack frame of the next called function).  The operation expects the allocation to be
-placed onto the data stack, then leaves it on the stack for consumption by a subsequent operation. An arbitrary number
-of allocations can be yielded down, but the operation following the yields must be a `call`.
-
-#### `heap_yield_up`
-
-`heap_yield_up` transfers dynamic allocation ownership from the current stack frame to the previous. This moves ownership
-_up_ the stack (e.g., into the stack frame after a `return`).  The operation expects the allocation to be
-placed onto the data stack, then leaves it on the stack for consumption by a subsequent operation. An arbitrary number
-of allocations can be yielded up, but the operation following the yields must be a `return`.
-
 #### `heap_read`
 
 `heap_read` reads a value from a field within a dynamic allocation. The allocation to read from should be on the data
 stack, while the immediate parameter denotes the field index to be read.
-
-#### `heap_swap`
-
-`heap_swap` exchanges the ownership of two dynamically owned allocations. The data stack should contain the two owning
-allocations. The field offset in `abc` corresponds to the first allocation on the stack, while the extended instruction
-contains the field offset to the second allocation on the stack. The first allocation on the stack is left on the data
-stack.
-
-#### `heap_move`
-
-#### `heap_swap_local`
-
-`heap_swap_local` exchanges the ownership of a dynamically owned allocation and an owned stack local. The data stack
-should contain the owning allocation, while the extended instruction contains the field offset into the allocation. The
-allocation that was previously owned by the stack local is left on the data stack.
-
-#### `heap_give_local`
-
-#### `heap_take_local`

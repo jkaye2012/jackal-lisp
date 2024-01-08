@@ -17,7 +17,7 @@ pub enum ValueType {
     F32,
     F64,
     LocalData(TypeIndex),
-    HeapData(TypeIndex),
+    HeapData,
 }
 
 impl Display for ValueType {
@@ -36,7 +36,7 @@ impl Display for ValueType {
             Self::F32 => write!(f, "F32"),
             Self::F64 => write!(f, "F64"),
             Self::LocalData(_) => write!(f, "LocalData"),
-            Self::HeapData(_) => write!(f, "Heap"),
+            Self::HeapData => write!(f, "Heap"),
         }
     }
 }
@@ -57,7 +57,7 @@ impl ValueType {
             Self::F32 => 4,
             Self::F64 => 8,
             Self::LocalData(type_index) => type_table.get(*type_index).total_size(type_table),
-            Self::HeapData(_) => 8,
+            Self::HeapData => 8,
         }
     }
 
@@ -76,7 +76,7 @@ impl ValueType {
             | Self::F32
             | Self::F64 => true,
             Self::LocalData(_) => false,
-            Self::HeapData(_) => false,
+            Self::HeapData => false,
         }
     }
 
@@ -228,6 +228,13 @@ impl Value {
             Self::F32(_) => 4,
             Self::F64(_) => 8,
             Self::HeapData(_) => 8,
+        }
+    }
+
+    pub fn pointer(&self) -> Pointer {
+        match self {
+            Self::HeapData(idx) => *idx,
+            _ => panic!("Attempted to extract pointer from non-heap value: {}", self),
         }
     }
 

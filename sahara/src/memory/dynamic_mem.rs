@@ -1,9 +1,9 @@
 use std::{collections::BTreeSet, mem::size_of};
 
-use crate::{data_type::TypeTable, util::index::TypeIndex};
+use crate::{data_type::TypeTable, util::index::TypeIndex, TypeDefinition, Value, ValueType};
 
 use super::{
-    common::{DynamicMemory, GrowableContiguousMemory},
+    common::{DynamicMemory, GrowableContiguousMemory, StorageResult},
     Memory, Pointer,
 };
 
@@ -56,8 +56,8 @@ struct HeapAllocation {
 impl HeapAllocation {
     fn new(type_index: TypeIndex, num: u32, size: u32) -> Self {
         HeapAllocation {
-            type_index,
             references: References::new(),
+            type_index,
             num,
             size,
         }
@@ -73,8 +73,8 @@ impl HeapAllocation {
         let num = u32::from_be_bytes(memory[8..12].try_into().unwrap());
         let size = u32::from_be_bytes(memory[12..16].try_into().unwrap());
         HeapAllocation {
-            type_index,
             references,
+            type_index,
             num,
             size,
         }
@@ -127,15 +127,21 @@ pub struct ContextHeap {
 }
 
 impl ContextHeap {
+    fn new() -> Self {
+        ContextHeap {
+            memory: Default::default(),
+            free_ptr: Pointer::new(8),
+            free_list: BTreeSet::new(),
+        }
+    }
+
     fn deallocate(&mut self, ptr: Pointer, alloc: HeapAllocation) {
-        self.memory
-            .slice_mut(ptr.offset_range(alloc.size as usize))
-            .fill(0);
+        self.memory.zero(ptr, ptr.offset(alloc.size));
         self.free_list.insert(IndexedAllocation {
             ptr,
             size: alloc.size,
         });
-        // TODO: compact memory when possible? would require indices to be virtual?
+        // TODO: compact memory when possible? would require pointers to be virtual?
     }
 
     fn get_alloc(&self, ptr: Pointer) -> HeapAllocation {
@@ -167,7 +173,7 @@ impl ContextHeap {
 }
 
 impl Memory for ContextHeap {
-    fn store_value(&mut self, ptr: Pointer, value: crate::Value) -> Pointer {
+    fn store_value(&mut self, ptr: Pointer, value: Value) -> StorageResult {
         self.memory.store_value(ptr, value)
     }
 
@@ -175,21 +181,17 @@ impl Memory for ContextHeap {
         &self,
         type_table: &TypeTable,
         ptr: Pointer,
-        value_type: &crate::ValueType,
+        value_type: &ValueType,
     ) -> crate::Value {
         self.memory.read_value(type_table, ptr, value_type)
+    }
+
+    fn zero(&mut self, from: Pointer, to: Pointer) {
+        self.memory.zero(from, to);
     }
 }
 
 impl DynamicMemory for ContextHeap {
-    fn new() -> Self {
-        ContextHeap {
-            memory: Default::default(),
-            free_ptr: Pointer::new(0),
-            free_list: BTreeSet::new(),
-        }
-    }
-
     fn allocate_n(&mut self, type_table: &TypeTable, type_index: TypeIndex, n: u32) -> Pointer {
         let sz = HeapAllocation::size() + type_table.get(type_index).total_size(type_table) * n;
         let alloc = HeapAllocation::new(type_index, n, sz);
@@ -215,6 +217,11 @@ impl DynamicMemory for ContextHeap {
         }
     }
 
+    fn type_of<'a>(&self, type_table: &'a TypeTable, ptr: Pointer) -> &'a TypeDefinition {
+        let alloc = self.get_alloc(ptr);
+        type_table.get(alloc.type_index)
+    }
+
     fn add_reference(&mut self, ptr: Pointer) {
         let mut alloc = self.get_alloc(ptr);
         alloc.references.increment();
@@ -229,6 +236,14 @@ impl DynamicMemory for ContextHeap {
         } else {
             self.deallocate(ptr, alloc);
         }
+    }
+
+    fn replace_reference(&mut self, prev: Pointer, new: Pointer) {
+        if prev.is_valid_allocation() {
+            self.remove_reference(prev);
+        }
+
+        self.add_reference(new);
     }
 
     fn is_allocation_valid(&self, ptr: Pointer) -> bool {
@@ -306,7 +321,7 @@ mod tests {
         let (mut ctx_heap, mut type_table, type_defn) = setup();
         let type_idx = type_table.insert(type_defn);
         let idx = ctx_heap.allocate(&type_table, type_idx);
-        assert_eq!(idx, Pointer::new(0));
+        assert_eq!(idx, Pointer::new(8));
 
         let alloc = ctx_heap.get_alloc(idx);
         assert_eq!(alloc.size, 16);
@@ -334,7 +349,7 @@ mod tests {
         let (mut ctx_heap, mut type_table, type_defn) = setup();
         let type_idx = type_table.insert(type_defn);
         let idx = ctx_heap.allocate_n(&type_table, type_idx, 5);
-        assert_eq!(idx, Pointer::new(0));
+        assert_eq!(idx, Pointer::new(8));
 
         let alloc = ctx_heap.get_alloc(idx);
         assert_eq!(alloc.size, 16);

@@ -1,7 +1,8 @@
 use std::{borrow::Borrow, collections::HashMap, fmt::Display};
 
 use crate::{
-    local::LocalSlots, module_registry::ModuleName, util::index::FunctionIndex, Instruction,
+    local::LocalSlots, memory::Pointer, module_registry::ModuleName, util::index::FunctionIndex,
+    Instruction,
 };
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -31,6 +32,36 @@ impl Display for Function {
             writeln!(f, "{}", i)?;
         }
         Ok(())
+    }
+}
+
+pub struct HeapReferences<'a> {
+    ptr: Pointer,
+    offsets: &'a [u32],
+    idx: usize,
+}
+
+impl<'a> HeapReferences<'a> {
+    fn new(ptr: Pointer, offsets: &'a [u32]) -> Self {
+        HeapReferences {
+            ptr,
+            offsets,
+            idx: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for HeapReferences<'a> {
+    type Item = Pointer;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.idx < self.offsets.len() {
+            let offset = self.offsets[self.idx];
+            self.idx += 1;
+            Some(self.ptr.offset(offset))
+        } else {
+            None
+        }
     }
 }
 
@@ -65,6 +96,10 @@ impl Function {
 
     pub fn local_slots(&self) -> &LocalSlots {
         &self.local_slots
+    }
+
+    pub fn heap_references(&self, ptr: Pointer) -> HeapReferences<'_> {
+        HeapReferences::new(ptr, self.local_slots.heap_offsets())
     }
 }
 

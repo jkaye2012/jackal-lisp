@@ -1,6 +1,11 @@
 use std::{borrow::Borrow, collections::HashMap};
 
-use crate::{memory::Pointer, module_registry::ModuleName, util::index::TypeIndex, ValueType};
+use crate::{
+    memory::Pointer,
+    module_registry::ModuleName,
+    util::index::{InstructionIndex, TypeIndex},
+    ValueType,
+};
 
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -99,9 +104,9 @@ impl TypeDefinition {
             .sum()
     }
 
-    // TODO: should field index be an instruction index?
-    pub fn field_pointer(&self, ptr: Pointer, field_idx: usize) -> FieldPointer {
-        let (field, offset) = &self.flattened_fields[field_idx];
+    pub fn field_pointer(&self, ptr: Pointer, field_idx: InstructionIndex) -> FieldPointer {
+        let idx: usize = field_idx.into();
+        let (field, offset) = &self.flattened_fields[idx];
         (field.value_type, ptr.offset(*offset))
     }
 

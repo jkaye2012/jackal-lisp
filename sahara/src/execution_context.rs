@@ -25,8 +25,19 @@ impl Frame {
         }
     }
 
+    // TODO: consider law of demeter, should function hide local slots?
+
     pub fn local_info(&self, function: &Function, idx: LocalIndex) -> (ValueType, Pointer) {
         function.local_slots().slot_info(idx, self.locals_begin)
+    }
+
+    pub fn deallocate<Heap>(&mut self, function: &Function, heap: &mut Heap)
+    where
+        Heap: DynamicMemory,
+    {
+        for ptr in function.heap_references(self.locals_begin) {
+            heap.remove_reference(ptr);
+        }
     }
 }
 
@@ -70,8 +81,25 @@ pub struct ExecutionContext<Heap: DynamicMemory> {
     extensions: Stack<Instruction>,
     locals: StaticMemory,
     _meta: MetaInformation,
-    _heap: Heap,
+    heap: Heap,
     _debug: Option<DebugInformation>,
+}
+
+macro_rules! store_value {
+    ($locals:expr, $heap: expr, $ptr:ident, $value:ident) => {{
+        let result = $locals.store_value($ptr, $value);
+        if let Some((prev, new)) = result.allocations() {
+            $heap.replace_reference(prev, new);
+        }
+        result.end()
+    }};
+    ($heap: expr, $ptr:ident, $value:ident) => {{
+        let result = $heap.store_value($ptr, $value);
+        if let Some((prev, new)) = result.allocations() {
+            $heap.replace_reference(prev, new);
+        }
+        result.end()
+    }};
 }
 
 impl<Heap: DynamicMemory> ExecutionContext<Heap> {
@@ -82,7 +110,7 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
             extensions: Stack::new(),
             locals: Default::default(),
             _meta: MetaInformation {},
-            _heap: Heap::new(),
+            heap: Heap::default(),
             _debug: None,
         }
     }
@@ -123,6 +151,8 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
                     frame = self.callstack.push(global_context.type_table(), func);
                 }
                 Opcode::Return => {
+                    self.locals.zero(frame.locals_begin, frame.locals_end);
+                    frame.deallocate(func, &mut self.heap);
                     frame = self.callstack.pop();
                     func = global_context.function_table().get(frame.function);
                 }
@@ -134,7 +164,7 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
                     let idx = inst.local_index();
                     let (_, ptr) = frame.local_info(func, idx);
                     let value = self.data.pop();
-                    self.locals.store_value(ptr, value);
+                    store_value!(self.locals, self.heap, ptr, value);
                 }
                 Opcode::LocalRead => {
                     let idx = inst.local_index();
@@ -150,7 +180,7 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
                     let type_definition = global_context.type_table().get(value_type.type_index());
                     for _ in 0..type_definition.num_fields() {
                         let value = self.data.pop();
-                        ptr = self.locals.store_value(ptr, value);
+                        ptr = store_value!(self.locals, self.heap, ptr, value);
                     }
                 }
                 Opcode::DataTypeReadField => {
@@ -158,9 +188,8 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
                     let (dt_value_type, dt_addr) = frame.local_info(func, local_idx);
                     let type_definition =
                         global_context.type_table().get(dt_value_type.type_index());
-                    let field_idx = self.extensions.pop().abc();
-                    let (field_type, field_ptr) =
-                        type_definition.field_pointer(dt_addr, field_idx as usize);
+                    let field_idx = self.extensions.pop().instruction_index();
+                    let (field_type, field_ptr) = type_definition.field_pointer(dt_addr, field_idx);
                     let value =
                         self.locals
                             .read_value(global_context.type_table(), field_ptr, &field_type);
@@ -171,24 +200,46 @@ impl<Heap: DynamicMemory> ExecutionContext<Heap> {
                     let (dt_value_type, dt_ptr) = frame.local_info(func, local_idx);
                     let type_definition =
                         global_context.type_table().get(dt_value_type.type_index());
-                    let field_idx = self.extensions.pop().abc();
+                    let field_idx = self.extensions.pop().instruction_index();
                     let value = self.data.pop();
-                    let (_, field_ptr) = type_definition.field_pointer(dt_ptr, field_idx as usize);
-                    self.locals.store_value(field_ptr, value);
+                    let (_, field_ptr) = type_definition.field_pointer(dt_ptr, field_idx);
+                    store_value!(self.locals, self.heap, field_ptr, value);
                 }
                 Opcode::HeapAlloc => {
-                    // expects the same inputs as DataTypeCreate, lift generically?
+                    // TODO: separate stack from heap pointers for type safety? Almost bit me
+                    let local_idx = inst.local_index();
+                    let (value_type, stack_ptr) = frame.local_info(func, local_idx);
+                    let mut ptr = self
+                        .heap
+                        .allocate(global_context.type_table(), value_type.type_index());
+                    let res = Value::HeapData(ptr);
+                    store_value!(self.locals, self.heap, stack_ptr, res);
+                    let type_definition = global_context.type_table().get(value_type.type_index());
+                    for _ in 0..type_definition.num_fields() {
+                        let value = self.data.pop();
+                        ptr = store_value!(self.heap, ptr, value);
+                    }
+                    self.data.push(res);
                 }
-                // Opcode::AllocateUnique => {
-                //     //     let type_idx = inst.type_index();
-                //     //     let type_definition = global_context.type_table().get(type_idx);
-                //     //     for _ in 0..type_definition.num_fields() {
-                //     //         let value = self.data.pop();
-                //     //         // addr = self
-                //     //         //     .locals
-                //     //         //     .store_local(global_context.type_table(), addr, value);
-                //     //     }
-                // }
+                Opcode::HeapStore => {
+                    let field_idx = inst.instruction_index();
+                    let value = self.data.pop();
+                    let ptr = self.data.pop().pointer();
+                    let type_definition = self.heap.type_of(global_context.type_table(), ptr);
+                    let (_, field_ptr) = type_definition.field_pointer(ptr, field_idx);
+                    store_value!(self.heap, field_ptr, value);
+                    self.data.push(value);
+                }
+                Opcode::HeapRead => {
+                    let field_idx = inst.instruction_index();
+                    let ptr = self.data.pop().pointer();
+                    let type_definition = self.heap.type_of(global_context.type_table(), ptr);
+                    let (value_type, field_ptr) = type_definition.field_pointer(ptr, field_idx);
+                    let value =
+                        self.heap
+                            .read_value(global_context.type_table(), field_ptr, &value_type);
+                    self.data.push(value);
+                }
                 Opcode::Extend => {
                     self.extensions.push(inst);
                 }

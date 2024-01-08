@@ -19,6 +19,8 @@ pub enum Opcode {
     DataTypeReadField,
     DataTypeSetField,
     HeapAlloc,
+    HeapStore,
+    HeapRead,
     Extend = 247,
     ImmI16 = 248,
     ImmI8 = 249,
@@ -52,6 +54,8 @@ impl From<u8> for Opcode {
             11 => Self::DataTypeReadField,
             12 => Self::DataTypeSetField,
             13 => Self::HeapAlloc,
+            14 => Self::HeapStore,
+            15 => Self::HeapRead,
             247 => Self::Extend,
             248 => Self::ImmI16,
             249 => Self::ImmI8,
@@ -82,6 +86,8 @@ impl Display for Opcode {
             Self::DataTypeReadField => write!(f, "dt_read_field"),
             Self::DataTypeSetField => write!(f, "dt_set_field"),
             Self::HeapAlloc => write!(f, "heap_alloc"),
+            Self::HeapStore => write!(f, "heap_store"),
+            Self::HeapRead => write!(f, "heap_read"),
             Self::Extend => write!(f, "extend"),
             Self::ImmI16 => write!(f, "imm_i16"),
             Self::ImmI8 => write!(f, "imm_i8"),
@@ -165,6 +171,10 @@ impl Instruction {
         self.bytecode & 0xFFFFFF
     }
 
+    pub fn instruction_index(&self) -> InstructionIndex {
+        self.abc().into()
+    }
+
     pub fn function_index(&self) -> FunctionIndex {
         self.abc().into()
     }
@@ -209,9 +219,6 @@ impl Instruction {
         Self::indexed(Opcode::Const, idx.into())
     }
 
-    // TODO: value shouldn't really be an instruction index - it's just arbitrary data. This is being used
-    // right now because it enforces that only the lower 24 bits of the value are utilized, but this may
-    // be changing soon if I decide to reduce instruction size to 16 bits anyway
     pub fn extend(value: InstructionIndex) -> Instruction {
         Self::indexed(Opcode::Extend, value)
     }
@@ -268,8 +275,16 @@ impl Instruction {
         Self::indexed(Opcode::DataTypeSetField, idx.into())
     }
 
-    pub fn heap_alloc(idx: TypeIndex) -> Instruction {
+    pub fn heap_alloc(idx: LocalIndex) -> Instruction {
         Self::indexed(Opcode::HeapAlloc, idx.into())
+    }
+
+    pub fn heap_store(offset: InstructionIndex) -> Instruction {
+        Self::indexed(Opcode::HeapStore, offset.into())
+    }
+
+    pub fn heap_read(offset: InstructionIndex) -> Instruction {
+        Self::indexed(Opcode::HeapRead, offset.into())
     }
 }
 
@@ -291,6 +306,8 @@ impl Display for Instruction {
             Opcode::DataTypeReadField => write!(f, " {}", self.abc()),
             Opcode::DataTypeSetField => write!(f, " {}", self.abc()),
             Opcode::HeapAlloc => write!(f, " {}", self.abc()),
+            Opcode::HeapStore => write!(f, " {}", self.abc()),
+            Opcode::HeapRead => write!(f, " {}", self.abc()),
             Opcode::Halt
             | Opcode::Return
             | Opcode::Add
